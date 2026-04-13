@@ -1,0 +1,30 @@
+// Tipos para autenticación
+
+export type UserRole = 'admin' | 'trabajador';
+
+export interface User {
+  id: number;
+  dni: string;
+  nombre: string;
+  rol: UserRole;
+  is_active: boolean;
+}
+
+export interface LoginRequest {
+  dni: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  message: string;
+  user: User;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (dni: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  checkAuth: () => Promise<void>;
+}

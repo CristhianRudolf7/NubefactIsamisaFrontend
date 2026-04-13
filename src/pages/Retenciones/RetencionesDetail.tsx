@@ -1,0 +1,117 @@
+import { useParams, useNavigate } from 'react-router-dom';
+import { Card, Descriptions, Table, Button, Space, Alert, Spin, message } from 'antd';
+import { ArrowLeftOutlined, SendOutlined, EditOutlined } from '@ant-design/icons';
+import { useRetencion, useEnviarRetencion } from '../../hooks/useRetenciones';
+import { useAppContext } from '../../contexts/AppContext';
+import { formatExcelDate, formatCurrency } from '../../utils/formatters';
+import StatusBadge from '../../components/common/StatusBadge';
+
+export default function RetencionesDetail() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { usuario } = useAppContext();
+  const { data, isLoading } = useRetencion(Number(id));
+  const enviarMutation = useEnviarRetencion();
+
+  const documento = data?.data;
+
+  if (isLoading) {
+    return <Spin fullscreen />;
+  }
+
+  if (!documento) {
+    return <Alert message="Retención no encontrada" type="error" />;
+  }
+
+  const { cabecera, detalles, estado_sunat } = documento;
+
+  const canEdit = ['rechazado', 'error'].includes((cabecera.status || '').toLowerCase());
+  const canSend = !cabecera.status || canEdit;
+
+  const handleEnviar = async () => {
+    try {
+      const result = await enviarMutation.mutateAsync({
+        retencionId: cabecera.Id,
+        usuario,
+      });
+      if (result.success) {
+        message.success('Retención enviada correctamente');
+        navigate('/retenciones');
+      } else {
+        message.error(result.message || 'Error al enviar');
+      }
+    } catch {
+      message.error('Error al enviar retención');
+    }
+  };
+
+  const detalleColumns = [
+    { title: 'Serie Doc.', dataIndex: 'DRserie', key: 'DRserie' },
+    { title: 'Nº Doc.', dataIndex: 'DRnumero', key: 'DRnumero' },
+    { title: 'Fecha', dataIndex: 'DRfecha', key: 'DRfecha', render: (v: number) => formatExcelDate(v) },
+    { title: 'Total', dataIndex: 'DRtotal', key: 'DRtotal', render: (v: number) => formatCurrency(v) },
+    { title: 'Retenido', dataIndex: 'Retenido', key: 'Retenido', render: (v: number) => formatCurrency(v) },
+    { title: 'Pagado', dataIndex: 'Pagado', key: 'Pagado', render: (v: number) => formatCurrency(v) },
+  ];
+
+  return (
+    <div>
+      <Space style={{ marginBottom: 16 }}>
+        <Button icon={<ArrowLeftOutlined />} onClick={() => navigate('/retenciones')}>
+          Volver
+        </Button>
+        {canSend && (
+          <Button type="primary" icon={<SendOutlined />} onClick={handleEnviar} loading={enviarMutation.isPending}>
+            Enviar a NubeFact
+          </Button>
+        )}
+        {canEdit && (
+          <Button icon={<EditOutlined />} onClick={() => navigate(`/retenciones/${id}/editar`)}>
+            Editar
+          </Button>
+        )}
+      </Space>
+
+      <Card title="Información de Retención">
+        <Descriptions bordered column={{ xs: 1, sm: 2, md: 3 }}>
+          <Descriptions.Item label="Serie-Número">{cabecera.Serie}-{cabecera.Numero}</Descriptions.Item>
+          <Descriptions.Item label="Fecha">{formatExcelDate(cabecera.DocumentDate)}</Descriptions.Item>
+          <Descriptions.Item label="Tasa">{cabecera.Tasa}%</Descriptions.Item>
+          <Descriptions.Item label="RUC Proveedor">{cabecera.VendorRuc}</Descriptions.Item>
+          <Descriptions.Item label="Proveedor">{cabecera.VendorName}</Descriptions.Item>
+          <Descriptions.Item label="Dirección">{cabecera.VendorAddress}</Descriptions.Item>
+          <Descriptions.Item label="Total Retenido">{formatCurrency(cabecera.TotalRetenido)}</Descriptions.Item>
+          <Descriptions.Item label="Total Pagado">{formatCurrency(cabecera.TotalPagado)}</Descriptions.Item>
+          <Descriptions.Item label="Estado"><StatusBadge estado={cabecera.status} /></Descriptions.Item>
+          {cabecera.Obs && <Descriptions.Item label="Observaciones">{cabecera.Obs}</Descriptions.Item>}
+        </Descriptions>
+      </Card>
+
+      <Card title="Documentos Relacionados" style={{ marginTop: 16 }}>
+        <Table
+          dataSource={detalles}
+          columns={detalleColumns}
+          rowKey="ID"
+          pagination={false}
+          size="small"
+        />
+      </Card>
+
+      {estado_sunat && (
+        <Card title="Estado SUNAT" style={{ marginTop: 16 }}>
+          <Descriptions bordered column={1}>
+            <Descriptions.Item label="Estado">{estado_sunat.Status}</Descriptions.Item>
+            {estado_sunat.Descripcion && (
+              <Descriptions.Item label="Descripción">{estado_sunat.Descripcion}</Descriptions.Item>
+            )}
+            {estado_sunat.Pdf && (
+              <Descriptions.Item label="PDF">
+                <a href={estado_sunat.Pdf} target="_blank" rel="noopener noreferrer">Descargar</a>
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+        </Card>
+      )}
+    </div>
+  );
+}
