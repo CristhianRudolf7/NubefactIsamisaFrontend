@@ -91,6 +91,8 @@ export default function RetencionesList() {
       <FilterPanel
         onFilter={handleFilter}
         onReset={handleResetFilters}
+        onRefresh={() => refetch()}
+        isLoading={isLoading}
         showTipoDocumento={false}
         estados={ESTADOS_DOCUMENTO}
       />

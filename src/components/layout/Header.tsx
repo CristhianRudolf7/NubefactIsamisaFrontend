@@ -13,6 +13,8 @@ const breadcrumbNameMap: Record<string, string> = {
   '/ventas': 'Ventas',
   '/retenciones': 'Retenciones',
   '/guias': 'Guías',
+  '/usuarios': 'Usuarios',
+  '/tokens': 'Tokens API',
 };
 
 export default function Header() {

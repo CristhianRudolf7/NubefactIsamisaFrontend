@@ -1,6 +1,6 @@
-import { Form, Input, Select, DatePicker, Button, Space, Row, Col, Collapse } from 'antd';
+import { Form, Input, Select, DatePicker, Button, Space, Row, Col, Collapse, Tooltip } from 'antd';
 import type { Dayjs } from 'dayjs';
-import { SearchOutlined, ClearOutlined, FilterOutlined } from '@ant-design/icons';
+import { SearchOutlined, ClearOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import type { FilterParams } from '../../types';
 import { ESTADOS_DOCUMENTO, TIPOS_DOCUMENTO_VENTA } from '../../utils/constants';
@@ -8,11 +8,15 @@ import { ESTADOS_DOCUMENTO, TIPOS_DOCUMENTO_VENTA } from '../../utils/constants'
 interface FilterPanelProps {
   onFilter: (params: FilterParams) => void;
   onReset: () => void;
+  onRefresh?: () => void;
+  isLoading?: boolean;
   showTipoDocumento?: boolean;
   estados?: { value: string; label: string }[];
 }
 
 export default function FilterPanel({
+  onRefresh,
+  isLoading = false,
   onFilter,
   onReset,
   showTipoDocumento = true,
@@ -91,12 +95,17 @@ export default function FilterPanel({
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
               <Form.Item label=" ">
                 <Space>
-                  <Button type="primary" htmlType="submit" icon={<SearchOutlined />}>
+                  <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={isLoading}>
                     Buscar
                   </Button>
                   <Button onClick={handleReset} icon={<ClearOutlined />}>
                     Limpiar
                   </Button>
+                  {onRefresh && (
+                    <Tooltip title="Recargar datos">
+                      <Button onClick={onRefresh} icon={<ReloadOutlined />} loading={isLoading} />
+                    </Tooltip>
+                  )}
                 </Space>
               </Form.Item>
             </Col>

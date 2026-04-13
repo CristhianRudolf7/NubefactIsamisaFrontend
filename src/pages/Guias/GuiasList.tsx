@@ -90,6 +90,8 @@ export default function GuiasList() {
       <FilterPanel
         onFilter={handleFilter}
         onReset={handleResetFilters}
+        onRefresh={() => refetch()}
+        isLoading={isLoading}
         showTipoDocumento={false}
         estados={ESTADOS_DOCUMENTO}
       />

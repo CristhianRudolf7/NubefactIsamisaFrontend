@@ -4,10 +4,13 @@ import {
   FileTextOutlined,
   RetweetOutlined,
   CarOutlined,
+  TeamOutlined,
+  KeyOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../../hooks/useSidebar';
 import { useDashboardStats } from '../../hooks/useDashboard';
+import { useAuth } from '../../contexts/AuthContext';
 
 const { Sider } = Layout;
 
@@ -16,6 +19,7 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { collapsed } = useSidebar();
   const { data: statsData } = useDashboardStats();
+  const { user } = useAuth();
 
   const stats = statsData?.data;
 
@@ -43,6 +47,20 @@ export default function Sidebar() {
       label: collapsed ? '' : `Guías (${stats?.guias?.pendientes || 0})`,
       title: 'Guías',
     },
+    // Solo admin puede ver el menú de usuarios
+    ...(user?.rol === 'admin' ? [{
+      key: '/usuarios',
+      icon: <TeamOutlined />,
+      label: 'Usuarios',
+      title: 'Usuarios',
+    }] : []),
+    // Solo admin puede ver el menú de tokens
+    ...(user?.rol === 'admin' ? [{
+      key: '/tokens',
+      icon: <KeyOutlined />,
+      label: 'Tokens API',
+      title: 'Tokens API',
+    }] : []),
   ];
 
   const handleMenuClick = ({ key }: { key: string }) => {

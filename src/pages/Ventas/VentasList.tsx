@@ -87,7 +87,7 @@ export default function VentasList() {
     <div>
       <Title level={4}>Documentos de Venta</Title>
 
-      <FilterPanel onFilter={handleFilter} onReset={handleResetFilters} />
+      <FilterPanel onFilter={handleFilter} onReset={handleResetFilters} onRefresh={() => refetch()} isLoading={isLoading} />
 
       <Card>
         <DataTable

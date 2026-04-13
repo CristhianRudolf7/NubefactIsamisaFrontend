@@ -8,6 +8,7 @@ import { AppProvider } from './contexts/AppContext';
 import { SidebarProvider } from './hooks/useSidebar';
 import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminRoute from './components/auth/AdminRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import VentasList from './pages/Ventas/VentasList';
@@ -19,6 +20,8 @@ import RetencionesEdit from './pages/Retenciones/RetencionesEdit';
 import GuiasList from './pages/Guias/GuiasList';
 import GuiasDetail from './pages/Guias/GuiasDetail';
 import GuiasEdit from './pages/Guias/GuiasEdit';
+import UsersList from './pages/Users/UsersList';
+import TokensList from './pages/Tokens/TokensList';
 
 import './styles/global.css';
 
@@ -63,6 +66,9 @@ function App() {
                     <Route path="/guias" element={<GuiasList />} />
                     <Route path="/guias/:id" element={<GuiasDetail />} />
                     <Route path="/guias/:id/editar" element={<GuiasEdit />} />
+                    {/* Rutas solo para admin */}
+                    <Route path="/usuarios" element={<AdminRoute><UsersList /></AdminRoute>} />
+                    <Route path="/tokens" element={<AdminRoute><TokensList /></AdminRoute>} />
                   </Route>
                 </Routes>
               </SidebarProvider>
