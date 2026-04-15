@@ -8,6 +8,9 @@ export interface User {
   nombre: string;
   rol: UserRole;
   is_active: boolean;
+  puede_acceder_ventas: boolean;
+  puede_acceder_guias: boolean;
+  puede_acceder_retenciones: boolean;
 }
 
 export interface LoginRequest {

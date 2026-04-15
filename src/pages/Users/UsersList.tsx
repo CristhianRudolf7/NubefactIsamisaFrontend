@@ -1,15 +1,19 @@
 import { useState } from 'react';
-import { Table, Button, Modal, Form, Input, Select, Tag, Space, Popconfirm, message, Badge, Tooltip } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ReloadOutlined } from '@ant-design/icons';
+import { Table, Button, Modal, Form, Input, Select, Tag, Space, Popconfirm, App, Badge, Tooltip, Checkbox } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import usersService, { type UserCreate, type UserUpdate } from '../../services/usersService';
 import type { User, UserRole } from '../../types/auth';
 
 export default function UsersList() {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPermisosModalOpen, setIsPermisosModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingPermisosUser, setEditingPermisosUser] = useState<User | null>(null);
   const [form] = Form.useForm();
+  const [permisosForm] = Form.useForm();
 
   // Obtener usuarios
   const { data: users = [], isLoading } = useQuery({
@@ -36,8 +40,6 @@ export default function UsersList() {
     mutationFn: ({ id, data }: { id: number; data: UserUpdate }) => usersService.updateUser(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      message.success('Usuario actualizado correctamente');
-      handleCloseModal();
     },
     onError: (error: unknown) => {
       const errorMsg = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Error al actualizar usuario';
@@ -70,6 +72,9 @@ export default function UsersList() {
       dni: user.dni,
       nombre: user.nombre,
       rol: user.rol,
+      puede_acceder_ventas: user.puede_acceder_ventas,
+      puede_acceder_guias: user.puede_acceder_guias,
+      puede_acceder_retenciones: user.puede_acceder_retenciones,
     });
     setIsModalOpen(true);
   };
@@ -80,17 +85,56 @@ export default function UsersList() {
     form.resetFields();
   };
 
-  const handleSubmit = async (values: { dni: string; nombre: string; password?: string; rol: UserRole }) => {
+  const handleOpenPermisos = (user: User) => {
+    setEditingPermisosUser(user);
+    permisosForm.setFieldsValue({
+      puede_acceder_ventas: user.puede_acceder_ventas,
+      puede_acceder_guias: user.puede_acceder_guias,
+      puede_acceder_retenciones: user.puede_acceder_retenciones,
+    });
+    setIsPermisosModalOpen(true);
+  };
+
+  const handleClosePermisosModal = () => {
+    setIsPermisosModalOpen(false);
+    setEditingPermisosUser(null);
+    permisosForm.resetFields();
+  };
+
+  const handlePermisosSubmit = async (values: { puede_acceder_ventas: boolean; puede_acceder_guias: boolean; puede_acceder_retenciones: boolean }) => {
+    if (!editingPermisosUser) return;
+    updateMutation.mutate({
+      id: editingPermisosUser.id,
+      data: values,
+    }, {
+      onSuccess: () => {
+        message.success('Permisos actualizados correctamente');
+        setIsPermisosModalOpen(false);
+        setEditingPermisosUser(null);
+        permisosForm.resetFields();
+      }
+    });
+  };
+
+  const handleSubmit = async (values: { dni: string; nombre: string; password?: string; rol: UserRole; puede_acceder_ventas?: boolean; puede_acceder_guias?: boolean; puede_acceder_retenciones?: boolean }) => {
     if (editingUser) {
       // Editar: solo enviar password si se proporcionó
       const updateData: UserUpdate = {
         nombre: values.nombre,
         rol: values.rol,
+        puede_acceder_ventas: values.puede_acceder_ventas,
+        puede_acceder_guias: values.puede_acceder_guias,
+        puede_acceder_retenciones: values.puede_acceder_retenciones,
       };
       if (values.password) {
         updateData.password = values.password;
       }
-      updateMutation.mutate({ id: editingUser.id, data: updateData });
+      updateMutation.mutate({ id: editingUser.id, data: updateData }, {
+        onSuccess: () => {
+          message.success('Usuario actualizado correctamente');
+          handleCloseModal();
+        }
+      });
     } else {
       // Crear: password es requerido
       createMutation.mutate(values as UserCreate);
@@ -101,6 +145,10 @@ export default function UsersList() {
     updateMutation.mutate({
       id: user.id,
       data: { is_active: !user.is_active },
+    }, {
+      onSuccess: () => {
+        message.success(`Usuario ${!user.is_active ? 'activado' : 'desactivado'} correctamente`);
+      }
     });
   };
 
@@ -144,16 +192,48 @@ export default function UsersList() {
       ),
     },
     {
+      title: 'Permisos',
+      key: 'permisos',
+      width: 200,
+      render: (_: unknown, record: User) => {
+        if (record.rol === 'admin') {
+          return <Tag color="blue">Acceso total</Tag>;
+        }
+        return (
+          <Space size="small" wrap>
+            {record.puede_acceder_ventas && <Tag color="green">Ventas</Tag>}
+            {record.puede_acceder_guias && <Tag color="orange">Guías</Tag>}
+            {record.puede_acceder_retenciones && <Tag color="purple">Retenciones</Tag>}
+            {!record.puede_acceder_ventas && !record.puede_acceder_guias && !record.puede_acceder_retenciones && (
+              <Tag>Sin permisos</Tag>
+            )}
+          </Space>
+        );
+      },
+    },
+    {
       title: 'Acciones',
       key: 'actions',
-      width: 200,
+      width: 250,
       render: (_: unknown, record: User) => (
         <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleOpenEdit(record)}
-          />
+          <Tooltip title="Editar usuario">
+            <Button
+              type="text"
+              icon={<EditOutlined />}
+              onClick={() => handleOpenEdit(record)}
+            />
+          </Tooltip>
+          {record.rol === 'trabajador' && (
+            <Button
+              type="primary"
+              size="small"
+              icon={<SafetyOutlined />}
+              onClick={() => handleOpenPermisos(record)}
+            >
+              Permisos
+            </Button>
+          )}
           <Button
             type="text"
             onClick={() => handleToggleActive(record)}
@@ -251,6 +331,31 @@ export default function UsersList() {
             </Select>
           </Form.Item>
 
+          {/* Permisos solo para trabajadores */}
+          <Form.Item noStyle shouldUpdate={(prevValues, currentValues) => prevValues.rol !== currentValues.rol}>
+            {({ getFieldValue }) => {
+              const rol = getFieldValue('rol');
+              if (rol === 'trabajador') {
+                return (
+                  <Form.Item label="Permisos de acceso">
+                    <Space orientation="vertical">
+                      <Form.Item name="puede_acceder_ventas" valuePropName="checked" noStyle>
+                        <Checkbox>Acceso a Ventas</Checkbox>
+                      </Form.Item>
+                      <Form.Item name="puede_acceder_guias" valuePropName="checked" noStyle>
+                        <Checkbox>Acceso a Guías</Checkbox>
+                      </Form.Item>
+                      <Form.Item name="puede_acceder_retenciones" valuePropName="checked" noStyle>
+                        <Checkbox>Acceso a Retenciones</Checkbox>
+                      </Form.Item>
+                    </Space>
+                  </Form.Item>
+                );
+              }
+              return null;
+            }}
+          </Form.Item>
+
           <Form.Item style={{ marginBottom: 0, textAlign: 'right' }}>
             <Space>
               <Button onClick={handleCloseModal}>Cancelar</Button>
@@ -260,6 +365,66 @@ export default function UsersList() {
                 loading={createMutation.isPending || updateMutation.isPending}
               >
                 {editingUser ? 'Guardar cambios' : 'Crear usuario'}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* Modal para editar permisos */}
+      <Modal
+        title={`Editar Permisos - ${editingPermisosUser?.nombre || ''}`}
+        open={isPermisosModalOpen}
+        onCancel={handleClosePermisosModal}
+        footer={null}
+        width={400}
+      >
+        <div style={{ marginBottom: 16, color: '#666' }}>
+          DNI: <strong>{editingPermisosUser?.dni}</strong>
+        </div>
+        <Form
+          form={permisosForm}
+          layout="vertical"
+          onFinish={handlePermisosSubmit}
+        >
+          <Form.Item label="Permisos de acceso">
+            <Space orientation="vertical" style={{ width: '100' }}>
+              <Form.Item name="puede_acceder_ventas" valuePropName="checked" noStyle>
+                <Checkbox style={{ fontSize: 14 }}>
+                  <span>
+                    <Tag color="green" style={{ marginLeft: 8 }}>Ventas</Tag>
+                    Acceso al módulo de ventas
+                  </span>
+                </Checkbox>
+              </Form.Item>
+              <Form.Item name="puede_acceder_guias" valuePropName="checked" noStyle>
+                <Checkbox style={{ fontSize: 14 }}>
+                  <span>
+                    <Tag color="orange" style={{ marginLeft: 8 }}>Guías</Tag>
+                    Acceso al módulo de guías
+                  </span>
+                </Checkbox>
+              </Form.Item>
+              <Form.Item name="puede_acceder_retenciones" valuePropName="checked" noStyle>
+                <Checkbox style={{ fontSize: 14 }}>
+                  <span>
+                    <Tag color="purple" style={{ marginLeft: 8 }}>Retenciones</Tag>
+                    Acceso al módulo de retenciones
+                  </span>
+                </Checkbox>
+              </Form.Item>
+            </Space>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 0, textAlign: 'right', marginTop: 24 }}>
+            <Space>
+              <Button onClick={handleClosePermisosModal}>Cancelar</Button>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={updateMutation.isPending}
+              >
+                Guardar permisos
               </Button>
             </Space>
           </Form.Item>

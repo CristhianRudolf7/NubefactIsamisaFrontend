@@ -1,9 +1,11 @@
 import { Form, Input, Select, DatePicker, Button, Space, Row, Col, Collapse, Tooltip } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { SearchOutlined, ClearOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import type { FilterParams } from '../../types';
 import { ESTADOS_DOCUMENTO, TIPOS_DOCUMENTO_VENTA } from '../../utils/constants';
+
+const { Item } = Form;
 
 interface FilterPanelProps {
   onFilter: (params: FilterParams) => void;
@@ -12,6 +14,7 @@ interface FilterPanelProps {
   isLoading?: boolean;
   showTipoDocumento?: boolean;
   estados?: { value: string; label: string }[];
+  columnSelector?: ReactNode;
 }
 
 export default function FilterPanel({
@@ -21,6 +24,7 @@ export default function FilterPanel({
   onReset,
   showTipoDocumento = true,
   estados = ESTADOS_DOCUMENTO,
+  columnSelector,
 }: FilterPanelProps) {
   const [form] = Form.useForm();
   const [expanded, setExpanded] = useState(true); // Abierto por defecto
@@ -56,58 +60,74 @@ export default function FilterPanel({
         <Form form={form} layout="vertical" onFinish={handleFinish}>
           <Row gutter={[16, 8]}>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label="Fecha Inicio" name="fecha_inicio">
+              <Item label="Fecha Inicio" name="fecha_inicio">
                 <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Desde" />
-              </Form.Item>
+              </Item>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label="Fecha Fin" name="fecha_fin">
+              <Item label="Fecha Fin" name="fecha_fin">
                 <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Hasta" />
-              </Form.Item>
+              </Item>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label="Serie" name="serie">
+              <Item label="Serie" name="serie">
                 <Input placeholder="Ej: FFF1" />
-              </Form.Item>
+              </Item>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label="Número" name="numero">
+              <Item label="Número" name="numero">
                 <Input placeholder="Ej: 123" />
-              </Form.Item>
+              </Item>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label="Estado" name="estado">
+              <Item label="Estado" name="estado">
                 <Select allowClear placeholder="Seleccionar" options={estados} />
-              </Form.Item>
+              </Item>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label="RUC/DNI" name="ruc_cliente">
+              <Item label="RUC/DNI" name="ruc_cliente">
                 <Input placeholder="Cliente" />
-              </Form.Item>
+              </Item>
             </Col>
             {showTipoDocumento && (
               <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-                <Form.Item label="Tipo Doc." name="tipo_documento">
+                <Item label="Tipo Doc." name="tipo_documento">
                   <Select allowClear placeholder="Seleccionar" options={TIPOS_DOCUMENTO_VENTA} />
-                </Form.Item>
+                </Item>
               </Col>
             )}
-            <Col xs={24} sm={12} md={8} lg={6} xl={4}>
-              <Form.Item label=" ">
-                <Space>
-                  <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={isLoading}>
-                    Buscar
-                  </Button>
-                  <Button onClick={handleReset} icon={<ClearOutlined />}>
-                    Limpiar
-                  </Button>
-                  {onRefresh && (
-                    <Tooltip title="Recargar datos">
-                      <Button onClick={onRefresh} icon={<ReloadOutlined />} loading={isLoading} />
-                    </Tooltip>
-                  )}
-                </Space>
-              </Form.Item>
+            {/* Botones como elementos individuales del grid */}
+            <Col xs={24} sm={12} md={6} lg={4} xl={3}>
+              <Item label=" ">
+                <Button type="primary" htmlType="submit" icon={<SearchOutlined />} loading={isLoading} block>
+                  Buscar
+                </Button>
+              </Item>
+            </Col>
+            <Col xs={24} sm={12} md={6} lg={4} xl={3}>
+              <Item label=" ">
+                <Button onClick={handleReset} icon={<ClearOutlined />} block>
+                  Limpiar
+                </Button>
+              </Item>
+            </Col>
+            <Col xs={24} sm={12} md={6} lg={4} xl={3}>
+              <Item label=" ">
+                {columnSelector}
+              </Item>
+            </Col>
+            {/* Espacio flexible para empujar Actualizar a la derecha */}
+            <Col flex="auto" />
+            <Col xs={24} sm={12} md={6} lg={4} xl={3}>
+              <Item label=" ">
+                {onRefresh && (
+                  <Tooltip title="Recargar datos">
+                    <Button onClick={onRefresh} icon={<ReloadOutlined />} loading={isLoading} block>
+                      Actualizar
+                    </Button>
+                  </Tooltip>
+                )}
+              </Item>
             </Col>
           </Row>
         </Form>

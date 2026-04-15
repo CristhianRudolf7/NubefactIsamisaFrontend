@@ -1,16 +1,16 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Alert, Spin } from 'antd';
-import { ArrowLeftOutlined, SendOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Table, Button, Space, Alert, Spin, App } from 'antd';
+import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined } from '@ant-design/icons';
 import { useGuia, useEnviarGuia } from '../../hooks/useGuias';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
-import { message } from 'antd';
 
 export default function GuiasDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { usuario } = useAppContext();
+  const { message } = App.useApp();
   const { data, isLoading } = useGuia(id!);
   const enviarMutation = useEnviarGuia();
 
@@ -28,6 +28,22 @@ export default function GuiasDetail() {
 
   const canEdit = ['rechazado', 'error'].includes((cabecera.envio_nube || '').toLowerCase());
   const canSend = !cabecera.envio_nube || canEdit;
+  const canDownload = cabecera.envio_nube && !['pendiente', 'error', 'rechazado'].includes((cabecera.envio_nube || '').toLowerCase());
+
+  const handleDownloadPdf = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/guias/${id}/pdf`, '_blank');
+  };
+
+  const handleDownloadXml = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/guias/${id}/xml`, '_blank');
+  };
+
+  const handleDownloadCdr = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/guias/${id}/cdr`, '_blank');
+  };
 
   const handleEnviar = async () => {
     try {
@@ -69,6 +85,19 @@ export default function GuiasDetail() {
           <Button icon={<EditOutlined />} onClick={() => navigate(`/guias/${id}/editar`)}>
             Editar
           </Button>
+        )}
+        {canDownload && (
+          <>
+            <Button icon={<FilePdfOutlined />} onClick={handleDownloadPdf}>
+              PDF
+            </Button>
+            <Button icon={<FileTextOutlined />} onClick={handleDownloadXml}>
+              XML
+            </Button>
+            <Button icon={<FileZipOutlined />} onClick={handleDownloadCdr}>
+              CDR
+            </Button>
+          </>
         )}
       </Space>
 

@@ -77,12 +77,15 @@ export function getEstadoClass(estado: string | undefined): string {
 export function getEstadoColor(estado: string | undefined): string {
   const colorMap: Record<string, string> = {
     pendiente: '#faad14',
-    enviado_nubefact: '#1677ff',
+    enviado_nubefact: '#52c41a',
+    enviado: '#52c41a',
     aceptado: '#52c41a',
+    aceptada: '#52c41a',
     aceptado_observaciones: '#faad14',
     rechazado: '#ff4d4f',
-    error: '#666666',
+    rechazada: '#ff4d4f',
+    error: '#ff4d4f',
   };
-  
+
   return colorMap[estado?.toLowerCase() || 'pendiente'] || '#faad14';
 }

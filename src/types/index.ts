@@ -52,6 +52,7 @@ export interface DocumentoVenta {
   AmountNoImponibleLo?: number;
   fe?: string;
   Status?: string;
+  error_mensaje?: string;
 }
 
 export interface DocumentoVentaDetalle {
@@ -88,6 +89,7 @@ export interface Retencion {
   TotalPagado: number;
   Obs?: string;
   status?: string;
+  error_mensaje?: string;
 }
 
 export interface RetencionDetalle {
@@ -138,6 +140,7 @@ export interface GuiaRemision {
   envio_nube?: string;
   Status?: string;
   Comments?: string;
+  error_mensaje?: string;
 }
 
 export interface GuiaRemisionDetalle {

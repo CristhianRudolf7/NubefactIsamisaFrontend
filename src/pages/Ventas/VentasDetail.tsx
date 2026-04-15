@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Alert, Spin, message } from 'antd';
-import { ArrowLeftOutlined, SendOutlined, EditOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Table, Button, Space, Alert, Spin, App } from 'antd';
+import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined } from '@ant-design/icons';
 import { useVenta, useEnviarVenta } from '../../hooks/useVentas';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate, formatCurrency } from '../../utils/formatters';
@@ -10,6 +10,7 @@ export default function VentasDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { usuario } = useAppContext();
+  const { message } = App.useApp();
   const { data, isLoading } = useVenta(id!);
   const enviarMutation = useEnviarVenta();
 
@@ -29,6 +30,22 @@ export default function VentasDetail() {
     (cabecera.fe || '').toLowerCase()
   );
   const canSend = !cabecera.fe || canEdit;
+  const canDownload = cabecera.fe && !['pendiente', 'error', 'rechazado'].includes((cabecera.fe || '').toLowerCase());
+
+  const handleDownloadPdf = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/ventas/${id}/pdf`, '_blank');
+  };
+
+  const handleDownloadXml = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/ventas/${id}/xml`, '_blank');
+  };
+
+  const handleDownloadCdr = () => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/ventas/${id}/cdr`, '_blank');
+  };
 
   const handleEnviar = async () => {
     try {
@@ -72,6 +89,19 @@ export default function VentasDetail() {
           <Button icon={<EditOutlined />} onClick={() => navigate(`/ventas/${id}/editar`)}>
             Editar
           </Button>
+        )}
+        {canDownload && (
+          <>
+            <Button icon={<FilePdfOutlined />} onClick={handleDownloadPdf}>
+              PDF
+            </Button>
+            <Button icon={<FileTextOutlined />} onClick={handleDownloadXml}>
+              XML
+            </Button>
+            <Button icon={<FileZipOutlined />} onClick={handleDownloadCdr}>
+              CDR
+            </Button>
+          </>
         )}
       </Space>
 

@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { retencionesService } from '../services/retencionesService';
+import { POLLING_INTERVAL } from '../utils/constants';
 import type { FilterParams, PaginationParams } from '../types';
 
 export function useRetenciones(params: FilterParams & PaginationParams) {
   return useQuery({
     queryKey: ['retenciones', params],
     queryFn: () => retencionesService.listar(params),
+    refetchInterval: POLLING_INTERVAL,
   });
 }
 

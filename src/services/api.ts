@@ -34,9 +34,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const url = error.config?.url || '';
 
-    // Si es 401 y no es una petición de login o refresh
-    if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+    // No intentar refresh para endpoints de autenticación (excepto /auth/me que debe refrescarse)
+    const authEndpoints = ['/auth/login', '/auth/logout', '/auth/refresh'];
+    const isAuthEndpoint = authEndpoints.some(endpoint => url.includes(endpoint));
+
+    // Si es 401 y no es endpoint de auth y no estamos en login
+    if (error.response?.status === 401 && !isAuthEndpoint && !window.location.pathname.includes('/login')) {
       // Si ya estamos intentando refrescar, encolar la petición
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -60,10 +65,10 @@ api.interceptors.response.use(
       try {
         // Intentar refrescar el token
         await api.post('/auth/refresh');
-        
+
         // Token refrescado exitosamente, reintentar peticiones en cola
         processQueue(null);
-        
+
         // Reintentar la petición original
         return api(originalRequest);
       } catch (refreshError) {

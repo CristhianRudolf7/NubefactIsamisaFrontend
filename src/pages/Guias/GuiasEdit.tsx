@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, message } from 'antd';
-import { ArrowLeftOutlined, SaveOutlined, SendOutlined } from '@ant-design/icons';
+import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Modal } from 'antd';
+import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useGuia, useActualizarGuia, useEnviarGuia } from '../../hooks/useGuias';
 import { useAppContext } from '../../contexts/AppContext';
 
@@ -8,11 +9,14 @@ export default function GuiasEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { usuario } = useAppContext();
+  const { message } = App.useApp();
   const [form] = Form.useForm();
 
   const { data, isLoading } = useGuia(id!);
   const actualizarMutation = useActualizarGuia();
   const enviarMutation = useEnviarGuia();
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   const documento = data?.data;
 
@@ -58,7 +62,10 @@ export default function GuiasEdit() {
         message.success('Guía actualizada y enviada');
         navigate('/guias');
       } else {
-        message.error(result.message || 'Error al enviar');
+        const errorMsg = result.message || result.error || 'Error al enviar';
+        message.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setErrorModalVisible(true);
       }
     } catch {
       message.error('Error en la operación');
@@ -157,9 +164,39 @@ export default function GuiasEdit() {
             >
               Guardar y Enviar
             </Button>
+            {(cabecera.error_mensaje || cabecera.Status === 'error') && (
+              <Button
+                icon={<ExclamationCircleOutlined />}
+                danger
+                onClick={() => {
+                  setErrorMessage(cabecera.error_mensaje || 'Error desconocido');
+                  setErrorModalVisible(true);
+                }}
+              >
+                Ver Error
+              </Button>
+            )}
           </Space>
         </Form>
       </Card>
+
+      <Modal
+        title="Error del documento"
+        open={errorModalVisible}
+        onCancel={() => setErrorModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setErrorModalVisible(false)}>
+            Cerrar
+          </Button>
+        ]}
+      >
+        <Alert
+          message="Se produjo un error al procesar el documento"
+          description={errorMessage}
+          type="error"
+          showIcon
+        />
+      </Modal>
     </div>
   );
 }

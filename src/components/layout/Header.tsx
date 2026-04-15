@@ -14,7 +14,6 @@ const breadcrumbNameMap: Record<string, string> = {
   '/retenciones': 'Retenciones',
   '/guias': 'Guías',
   '/usuarios': 'Usuarios',
-  '/tokens': 'Tokens API',
 };
 
 export default function Header() {

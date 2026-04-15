@@ -5,7 +5,6 @@ import {
   RetweetOutlined,
   CarOutlined,
   TeamOutlined,
-  KeyOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../../hooks/useSidebar';
@@ -29,37 +28,33 @@ export default function Sidebar() {
       icon: <DashboardOutlined />,
       label: 'Dashboard',
     },
-    {
+    // Ventas: visible si es admin o tiene permiso de ventas
+    ...(user?.rol === 'admin' || user?.puede_acceder_ventas ? [{
       key: '/ventas',
       icon: <FileTextOutlined />,
       label: collapsed ? '' : `Ventas (${stats?.ventas?.pendientes || 0})`,
       title: 'Ventas',
-    },
-    {
+    }] : []),
+    // Retenciones: visible si es admin o tiene permiso de retenciones
+    ...(user?.rol === 'admin' || user?.puede_acceder_retenciones ? [{
       key: '/retenciones',
       icon: <RetweetOutlined />,
       label: collapsed ? '' : `Retenciones (${stats?.retenciones?.pendientes || 0})`,
       title: 'Retenciones',
-    },
-    {
+    }] : []),
+    // Guías: visible si es admin o tiene permiso de guías
+    ...(user?.rol === 'admin' || user?.puede_acceder_guias ? [{
       key: '/guias',
       icon: <CarOutlined />,
       label: collapsed ? '' : `Guías (${stats?.guias?.pendientes || 0})`,
       title: 'Guías',
-    },
+    }] : []),
     // Solo admin puede ver el menú de usuarios
     ...(user?.rol === 'admin' ? [{
       key: '/usuarios',
       icon: <TeamOutlined />,
       label: 'Usuarios',
       title: 'Usuarios',
-    }] : []),
-    // Solo admin puede ver el menú de tokens
-    ...(user?.rol === 'admin' ? [{
-      key: '/tokens',
-      icon: <KeyOutlined />,
-      label: 'Tokens API',
-      title: 'Tokens API',
     }] : []),
   ];
 

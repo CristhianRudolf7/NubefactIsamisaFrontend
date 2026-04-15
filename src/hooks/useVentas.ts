@@ -1,11 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ventasService } from '../services/ventasService';
+import { POLLING_INTERVAL } from '../utils/constants';
 import type { FilterParams, PaginationParams } from '../types';
 
 export function useVentas(params: FilterParams & PaginationParams) {
   return useQuery({
     queryKey: ['ventas', params],
     queryFn: () => ventasService.listar(params),
+    refetchInterval: POLLING_INTERVAL,
   });
 }
 

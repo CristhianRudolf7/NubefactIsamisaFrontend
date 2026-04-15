@@ -20,7 +20,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
           alignItems: 'center',
         }}
       >
-        <Spin size="large" tip="Verificando sesión..." />
+        <Spin size="large" description="Verificando sesión..." />
       </div>
     );
   }

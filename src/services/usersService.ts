@@ -6,6 +6,9 @@ export interface UserCreate {
   nombre: string;
   password: string;
   rol: UserRole;
+  puede_acceder_ventas?: boolean;
+  puede_acceder_guias?: boolean;
+  puede_acceder_retenciones?: boolean;
 }
 
 export interface UserUpdate {
@@ -13,6 +16,9 @@ export interface UserUpdate {
   password?: string;
   rol?: UserRole;
   is_active?: boolean;
+  puede_acceder_ventas?: boolean;
+  puede_acceder_guias?: boolean;
+  puede_acceder_retenciones?: boolean;
 }
 
 const usersService = {
@@ -20,7 +26,16 @@ const usersService = {
    * Obtener lista de usuarios
    */
   async getUsers(): Promise<User[]> {
-    const response = await api.get<{ id: number; dni: string; nombre: string; rol: string; is_active: boolean }[]>('/users/');
+    const response = await api.get<{ 
+      id: number; 
+      dni: string; 
+      nombre: string; 
+      rol: string; 
+      is_active: boolean;
+      puede_acceder_ventas: boolean;
+      puede_acceder_guias: boolean;
+      puede_acceder_retenciones: boolean;
+    }[]>('/users/');
     return response.data.map(user => ({
       ...user,
       rol: user.rol as UserRole,

@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Typography, Card, message } from 'antd';
+import { Typography, Card, App } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/common/DataTable';
 import FilterPanel from '../../components/common/FilterPanel';
 import StatusBadge from '../../components/common/StatusBadge';
+import ColumnSelector from '../../components/common/ColumnSelector';
 import { useVentas, useEnviarVenta } from '../../hooks/useVentas';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
 import { useAppContext } from '../../contexts/AppContext';
@@ -16,6 +17,7 @@ const { Title } = Typography;
 export default function VentasList() {
   const navigate = useNavigate();
   const { usuario } = useAppContext();
+  const { message } = App.useApp();
   const [filters, setFilters] = useState<FilterParams>({});
   const [pagination, setPagination] = useState<PaginationParams>({ page: 1, page_size: 20 });
 
@@ -60,14 +62,29 @@ export default function VentasList() {
     }
   };
 
-  const canEdit = (record: DocumentoVenta) => {
-    const estado = (record.fe || '').toLowerCase();
+  const canEdit = (record: Record<string, unknown>) => {
+    const estado = ((record.fe as string) || '').toLowerCase();
     return ['rechazado', 'error', 'aceptado_observaciones'].includes(estado);
   };
 
-  const canSend = (record: DocumentoVenta) => {
-    const estado = (record.fe || '').toLowerCase();
+  const canSend = (record: Record<string, unknown>) => {
+    const estado = ((record.fe as string) || '').toLowerCase();
     return ['pendiente', '', undefined].includes(estado) || canEdit(record);
+  };
+
+  const handleDownloadPdf = (record: Record<string, unknown>) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/ventas/${record.Document}/pdf`, '_blank');
+  };
+
+  const handleDownloadXml = (record: Record<string, unknown>) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/ventas/${record.Document}/xml`, '_blank');
+  };
+
+  const handleDownloadCdr = (record: Record<string, unknown>) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/ventas/${record.Document}/cdr`, '_blank');
   };
 
   const tableData = useMemo(() => {
@@ -87,17 +104,26 @@ export default function VentasList() {
     <div>
       <Title level={4}>Documentos de Venta</Title>
 
-      <FilterPanel onFilter={handleFilter} onReset={handleResetFilters} onRefresh={() => refetch()} isLoading={isLoading} />
+      <FilterPanel
+        onFilter={handleFilter}
+        onReset={handleResetFilters}
+        onRefresh={() => refetch()}
+        isLoading={isLoading}
+        columnSelector={
+          <ColumnSelector
+            columns={columns}
+            onToggle={toggleColumn}
+            onReset={resetToDefault}
+            hiddenCount={hiddenCount}
+          />
+        }
+      />
 
       <Card>
         <DataTable
           data={tableData}
           loading={isLoading}
-          columns={columns}
           visibleColumns={visibleColumns}
-          onToggleColumn={toggleColumn}
-          onResetColumns={resetToDefault}
-          hiddenCount={hiddenCount}
           rowKey="key"
           onView={(record) => navigate(`/ventas/${record.Document}`)}
           onEdit={(record) => navigate(`/ventas/${record.Document}/editar`)}
@@ -105,6 +131,10 @@ export default function VentasList() {
           canEdit={canEdit}
           canSend={canSend}
           getEstado={(record) => record.fe as string}
+          getError={(record) => record.error_mensaje}
+          onDownloadPdf={handleDownloadPdf}
+          onDownloadXml={handleDownloadXml}
+          onDownloadCdr={handleDownloadCdr}
           pagination={{
             current: pagination.page,
             pageSize: pagination.page_size,

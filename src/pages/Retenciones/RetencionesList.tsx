@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Typography, Card, message } from 'antd';
+import { Typography, Card, App } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/common/DataTable';
 import FilterPanel from '../../components/common/FilterPanel';
 import StatusBadge from '../../components/common/StatusBadge';
+import ColumnSelector from '../../components/common/ColumnSelector';
 import { useRetenciones, useEnviarRetencion } from '../../hooks/useRetenciones';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
 import { useAppContext } from '../../contexts/AppContext';
@@ -16,6 +17,7 @@ const { Title } = Typography;
 export default function RetencionesList() {
   const navigate = useNavigate();
   const { usuario } = useAppContext();
+  const { message } = App.useApp();
   const [filters, setFilters] = useState<FilterParams>({});
   const [pagination, setPagination] = useState<PaginationParams>({ page: 1, page_size: 20 });
 
@@ -60,14 +62,29 @@ export default function RetencionesList() {
     }
   };
 
-  const canEdit = (record: Retencion) => {
-    const estado = (record.status || '').toLowerCase();
+  const canEdit = (record: Record<string, unknown>) => {
+    const estado = ((record.status as string) || '').toLowerCase();
     return ['rechazado', 'error', 'aceptado_observaciones'].includes(estado);
   };
 
-  const canSend = (record: Retencion) => {
-    const estado = (record.status || '').toLowerCase();
+  const canSend = (record: Record<string, unknown>) => {
+    const estado = ((record.status as string) || '').toLowerCase();
     return !estado || ['pendiente', 'error'].includes(estado) || canEdit(record);
+  };
+
+  const handleDownloadPdf = (record: Record<string, unknown>) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/retenciones/${record.Id}/pdf`, '_blank');
+  };
+
+  const handleDownloadXml = (record: Record<string, unknown>) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/retenciones/${record.Id}/xml`, '_blank');
+  };
+
+  const handleDownloadCdr = (record: Record<string, unknown>) => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    window.open(`${baseUrl}/retenciones/${record.Id}/cdr`, '_blank');
   };
 
   const tableData = useMemo(() => {
@@ -95,17 +112,21 @@ export default function RetencionesList() {
         isLoading={isLoading}
         showTipoDocumento={false}
         estados={ESTADOS_DOCUMENTO}
+        columnSelector={
+          <ColumnSelector
+            columns={columns}
+            onToggle={toggleColumn}
+            onReset={resetToDefault}
+            hiddenCount={hiddenCount}
+          />
+        }
       />
 
       <Card>
         <DataTable
           data={tableData}
           loading={isLoading}
-          columns={columns}
           visibleColumns={visibleColumns}
-          onToggleColumn={toggleColumn}
-          onResetColumns={resetToDefault}
-          hiddenCount={hiddenCount}
           rowKey="key"
           onView={(record) => navigate(`/retenciones/${record.Id}`)}
           onEdit={(record) => navigate(`/retenciones/${record.Id}/editar`)}
@@ -113,6 +134,10 @@ export default function RetencionesList() {
           canEdit={canEdit}
           canSend={canSend}
           getEstado={(record) => record.status as string}
+          getError={(record) => record.error_mensaje}
+          onDownloadPdf={handleDownloadPdf}
+          onDownloadXml={handleDownloadXml}
+          onDownloadCdr={handleDownloadCdr}
           pagination={{
             current: pagination.page,
             pageSize: pagination.page_size,
