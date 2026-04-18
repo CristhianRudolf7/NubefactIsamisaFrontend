@@ -7,6 +7,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 import ColumnSelector from '../../components/common/ColumnSelector';
 import { useGuias, useEnviarGuia } from '../../hooks/useGuias';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
+import { guiasService } from '../../services/guiasService';
 import { useAppContext } from '../../contexts/AppContext';
 import { GUIAS_COLUMNS, ESTADOS_DOCUMENTO } from '../../utils/constants';
 import { formatExcelDate, formatSerieNumero } from '../../utils/formatters';
@@ -72,9 +73,21 @@ export default function GuiasList() {
     return !estado || ['pendiente', 'error'].includes(estado) || canEdit(record);
   };
 
-  const handleDownloadPdf = (record: Record<string, unknown>) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    window.open(`${baseUrl}/guias/${record.Transaction}/pdf`, '_blank');
+  const handleDownloadPdf = async (record: Record<string, unknown>) => {
+    const result = await guiasService.descargarPdf(record.Transaction as string);
+    
+    if (result.success && result.blob) {
+      const url = window.URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${record.DocumentSerie}-${record.DocumentNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      message.warning(result.error || 'PDF no disponible');
+    }
   };
 
   const handleDownloadXml = (record: Record<string, unknown>) => {

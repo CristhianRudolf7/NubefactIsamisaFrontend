@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Table, Button, Modal, Form, Input, Select, Tag, Space, Popconfirm, App, Badge, Tooltip, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ReloadOutlined, SafetyOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, ReloadOutlined, SafetyOutlined, PhoneOutlined, BellOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import usersService, { type UserCreate, type UserUpdate } from '../../services/usersService';
 import type { User, UserRole } from '../../types/auth';
@@ -71,7 +71,9 @@ export default function UsersList() {
     form.setFieldsValue({
       dni: user.dni,
       nombre: user.nombre,
+      celular: user.celular,
       rol: user.rol,
+      recibir_notificaciones: user.recibir_notificaciones,
       puede_acceder_ventas: user.puede_acceder_ventas,
       puede_acceder_guias: user.puede_acceder_guias,
       puede_acceder_retenciones: user.puede_acceder_retenciones,
@@ -116,12 +118,14 @@ export default function UsersList() {
     });
   };
 
-  const handleSubmit = async (values: { dni: string; nombre: string; password?: string; rol: UserRole; puede_acceder_ventas?: boolean; puede_acceder_guias?: boolean; puede_acceder_retenciones?: boolean }) => {
+  const handleSubmit = async (values: { dni: string; nombre: string; celular: string; password?: string; rol: UserRole; recibir_notificaciones?: boolean; puede_acceder_ventas?: boolean; puede_acceder_guias?: boolean; puede_acceder_retenciones?: boolean }) => {
     if (editingUser) {
       // Editar: solo enviar password si se proporcionó
       const updateData: UserUpdate = {
         nombre: values.nombre,
+        celular: values.celular,
         rol: values.rol,
+        recibir_notificaciones: values.recibir_notificaciones,
         puede_acceder_ventas: values.puede_acceder_ventas,
         puede_acceder_guias: values.puede_acceder_guias,
         puede_acceder_retenciones: values.puede_acceder_retenciones,
@@ -167,6 +171,23 @@ export default function UsersList() {
       title: 'Nombre',
       dataIndex: 'nombre',
       key: 'nombre',
+    },
+    {
+      title: 'Celular',
+      dataIndex: 'celular',
+      key: 'celular',
+      width: 120,
+    },
+    {
+      title: 'Notificaciones',
+      dataIndex: 'recibir_notificaciones',
+      key: 'recibir_notificaciones',
+      width: 120,
+      render: (recibir: boolean) => (
+        <Tag color={recibir ? 'green' : 'default'}>
+          {recibir ? 'Sí' : 'No'}
+        </Tag>
+      ),
     },
     {
       title: 'Rol',
@@ -313,6 +334,22 @@ export default function UsersList() {
           </Form.Item>
 
           <Form.Item
+            name="celular"
+            label="Celular"
+            rules={[
+              { required: true, message: 'Ingrese el número de celular' },
+              { len: 9, message: 'El celular debe tener 9 dígitos' },
+              { pattern: /^\d+$/, message: 'Solo se permiten números' },
+            ]}
+          >
+            <Input
+              prefix={<PhoneOutlined />}
+              placeholder="Celular"
+              maxLength={9}
+            />
+          </Form.Item>
+
+          <Form.Item
             name="password"
             label={editingUser ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña'}
             rules={editingUser ? [] : [{ required: true, message: 'Ingrese la contraseña' }]}
@@ -329,6 +366,17 @@ export default function UsersList() {
               <Select.Option value="admin">Admin</Select.Option>
               <Select.Option value="trabajador">Trabajador</Select.Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="recibir_notificaciones"
+            valuePropName="checked"
+            initialValue={true}
+          >
+            <Checkbox>
+              <BellOutlined style={{ marginRight: 8 }} />
+              Recibir notificaciones
+            </Checkbox>
           </Form.Item>
 
           {/* Permisos solo para trabajadores */}

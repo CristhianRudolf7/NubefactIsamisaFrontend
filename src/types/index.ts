@@ -53,6 +53,7 @@ export interface DocumentoVenta {
   fe?: string;
   Status?: string;
   error_mensaje?: string;
+  codigo_hash?: string;
 }
 
 export interface DocumentoVentaDetalle {
@@ -219,4 +220,56 @@ export interface ColumnConfig {
   visible: boolean;
   required?: boolean;
   width?: number;
+}
+
+// ==================== AUDITORÍA ====================
+
+export interface AuditoriaRegistro {
+  id: number;
+  tabla: string;
+  registro_id: string;  // String para soportar IDs alfanuméricos
+  accion: string;
+  datos_anteriores: string | null;
+  datos_nuevos: string | null;
+  usuario: string | null;
+  fecha: string;
+  ip: string | null;
+}
+
+export interface AuditoriaDetalle {
+  id: number;
+  tabla: string;
+  registro_id: string;  // String para soportar IDs alfanuméricos
+  accion: string;
+  datos_anteriores: Record<string, unknown> | null;
+  datos_nuevos: Record<string, unknown> | null;
+  usuario: string | null;
+  fecha: string;
+  ip: string | null;
+}
+
+export interface AuditoriaEstadisticas {
+  total_registros: number;
+  acciones_por_tipo: Record<string, number>;
+  acciones_por_tabla: Record<string, number>;
+  usuarios_mas_activos: Array<{ usuario: string; cantidad: number }>;
+  acciones_por_dia: Array<{ fecha: string; cantidad: number }>;
+}
+
+export interface AuditoriaFiltros {
+  tabla?: string;
+  accion?: string;
+  usuario?: string;
+  fecha_inicio?: string;
+  fecha_fin?: string;
+  page?: number;
+  page_size?: number;
+}
+
+export interface AuditoriaListResponse {
+  registros: AuditoriaRegistro[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
 }

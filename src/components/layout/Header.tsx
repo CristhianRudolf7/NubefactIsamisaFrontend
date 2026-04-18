@@ -1,4 +1,4 @@
-import { Layout, Breadcrumb, Badge, Avatar, Dropdown, Space, Tag } from 'antd';
+import { Layout, Breadcrumb, Badge, Avatar, Dropdown, Space, Tag, Grid } from 'antd';
 import { BellOutlined, UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
 import { useLocation, Link } from 'react-router-dom';
 import { useAppContext } from '../../contexts/AppContext';
@@ -21,6 +21,11 @@ export default function Header() {
   const { notificaciones } = useAppContext();
   const { user, logout } = useAuth();
   const { collapsed, toggle } = useSidebar();
+  const screens = Grid.useBreakpoint();
+
+  // En pantallas pequeñas (md = 768px), el sidebar es overlay, no empuja el header
+  const isSmallScreen = !screens.md;
+  const left = isSmallScreen ? 0 : (collapsed ? 80 : 240);
 
   const pathSnippets = location.pathname.split('/').filter((i) => i);
   const extraBreadcrumbItems = pathSnippets.map((_, index) => {
@@ -74,7 +79,7 @@ export default function Header() {
       style={{
         position: 'fixed',
         top: 0,
-        left: collapsed ? 80 : 240,
+        left,
         right: 0,
         zIndex: 100,
         background: '#fff',

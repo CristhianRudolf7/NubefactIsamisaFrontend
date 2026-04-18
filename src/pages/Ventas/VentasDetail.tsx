@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Alert, Spin, App } from 'antd';
-import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined } from '@ant-design/icons';
-import { useVenta, useEnviarVenta } from '../../hooks/useVentas';
+import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
+import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
+import { useVenta, useEnviarVenta, useAnularVenta } from '../../hooks/useVentas';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate, formatCurrency } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -13,6 +14,9 @@ export default function VentasDetail() {
   const { message } = App.useApp();
   const { data, isLoading } = useVenta(id!);
   const enviarMutation = useEnviarVenta();
+  const anularMutation = useAnularVenta();
+  const [showAnularModal, setShowAnularModal] = useState(false);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
 
   const documento = data?.data;
 
@@ -31,6 +35,8 @@ export default function VentasDetail() {
   );
   const canSend = !cabecera.fe || canEdit;
   const canDownload = cabecera.fe && !['pendiente', 'error', 'rechazado'].includes((cabecera.fe || '').toLowerCase());
+  // Mostrar anular solo si está rechazado o pendiente
+  const canAnular = ['rechazado', 'pendiente'].includes((cabecera.fe || '').toLowerCase());
 
   const handleDownloadPdf = () => {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -64,6 +70,30 @@ export default function VentasDetail() {
     }
   };
 
+  const handleAnular = async () => {
+    if (!motivoAnulacion.trim()) {
+      message.error('Ingrese el motivo de anulación');
+      return;
+    }
+    try {
+      const result = await anularMutation.mutateAsync({
+        documentId: cabecera.Document,
+        motivo: motivoAnulacion,
+        usuario,
+      });
+      if (result.success) {
+        message.success('Anulación procesada correctamente');
+        setShowAnularModal(false);
+        setMotivoAnulacion('');
+        navigate('/ventas');
+      } else {
+        message.error(result.message || 'Error al anular');
+      }
+    } catch {
+      message.error('Error al anular documento');
+    }
+  };
+
   const detalleColumns = [
     { title: 'Línea', dataIndex: 'Line', key: 'Line', width: 60 },
     { title: 'Código', dataIndex: 'ItemCode', key: 'ItemCode', width: 100 },
@@ -88,6 +118,11 @@ export default function VentasDetail() {
         {canEdit && (
           <Button icon={<EditOutlined />} onClick={() => navigate(`/ventas/${id}/editar`)}>
             Editar
+          </Button>
+        )}
+        {canAnular && (
+          <Button danger icon={<StopOutlined />} onClick={() => setShowAnularModal(true)}>
+            Anular
           </Button>
         )}
         {canDownload && (
@@ -154,6 +189,29 @@ export default function VentasDetail() {
           </Descriptions>
         </Card>
       )}
+
+      {/* Modal de anulación */}
+      <Modal
+        title="Anular Documento"
+        open={showAnularModal}
+        onCancel={() => {
+          setShowAnularModal(false);
+          setMotivoAnulacion('');
+        }}
+        onOk={handleAnular}
+        confirmLoading={anularMutation.isPending}
+        okText="Anular"
+        okButtonProps={{ danger: true }}
+      >
+        <p>¿Está seguro que desea anular el documento <strong>{cabecera.DocumentSerie}-{cabecera.DocumentNo}</strong>?</p>
+        <Input.TextArea
+          placeholder="Motivo de anulación"
+          value={motivoAnulacion}
+          onChange={(e) => setMotivoAnulacion(e.target.value)}
+          rows={3}
+          required
+        />
+      </Modal>
     </div>
   );
 }

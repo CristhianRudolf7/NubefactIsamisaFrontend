@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Modal } from 'antd';
-import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import { useGuia, useActualizarGuia, useEnviarGuia } from '../../hooks/useGuias';
 import { useAppContext } from '../../contexts/AppContext';
 
@@ -12,11 +12,16 @@ export default function GuiasEdit() {
   const { message } = App.useApp();
   const [form] = Form.useForm();
 
-  const { data, isLoading } = useGuia(id!);
+  const { data, isLoading, refetch } = useGuia(id!);
   const actualizarMutation = useActualizarGuia();
   const enviarMutation = useEnviarGuia();
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    message.success('Error copiado al portapapeles');
+  };
 
   const documento = data?.data;
 
@@ -62,9 +67,11 @@ export default function GuiasEdit() {
         message.success('Guía actualizada y enviada');
         navigate('/guias');
       } else {
-        const errorMsg = result.message || result.error || 'Error al enviar';
-        message.error(errorMsg);
-        setErrorMessage(errorMsg);
+        // Refrescar datos para obtener el error actualizado de la BD
+        const { data: newData } = await refetch();
+        const newError = newData?.data?.cabecera?.error_mensaje || result.message || result.error || 'Error al enviar';
+        message.error(newError);
+        setErrorMessage(newError);
         setErrorModalVisible(true);
       }
     } catch {
@@ -148,7 +155,7 @@ export default function GuiasEdit() {
             <Input.TextArea rows={3} />
           </Form.Item>
 
-          <Space>
+          <Space wrap>
             <Button
               type="primary"
               htmlType="submit"
@@ -185,6 +192,9 @@ export default function GuiasEdit() {
         open={errorModalVisible}
         onCancel={() => setErrorModalVisible(false)}
         footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={() => copyToClipboard(errorMessage)}>
+            Copiar Error
+          </Button>,
           <Button key="close" onClick={() => setErrorModalVisible(false)}>
             Cerrar
           </Button>

@@ -25,18 +25,32 @@ export function useEnviarVenta() {
   return useMutation({
     mutationFn: ({ documentId, usuario }: { documentId: string; usuario: string }) =>
       ventasService.enviar(documentId, usuario),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      queryClient.invalidateQueries({ queryKey: ['venta', variables.documentId] });
     },
   });
 }
 
 export function useActualizarVenta() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ documentId, datos, usuario }: { documentId: string; datos: Record<string, unknown>; usuario: string }) =>
       ventasService.actualizar(documentId, datos, usuario),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      queryClient.invalidateQueries({ queryKey: ['venta', variables.documentId] });
+    },
+  });
+}
+
+export function useAnularVenta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, motivo, usuario }: { documentId: string; motivo: string; usuario: string }) =>
+      ventasService.anular(documentId, motivo, usuario),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['ventas'] });
       queryClient.invalidateQueries({ queryKey: ['venta', variables.documentId] });

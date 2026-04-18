@@ -4,8 +4,10 @@ import type { User, UserRole } from '../types/auth';
 export interface UserCreate {
   dni: string;
   nombre: string;
+  celular: string;
   password: string;
   rol: UserRole;
+  recibir_notificaciones?: boolean;
   puede_acceder_ventas?: boolean;
   puede_acceder_guias?: boolean;
   puede_acceder_retenciones?: boolean;
@@ -13,9 +15,11 @@ export interface UserCreate {
 
 export interface UserUpdate {
   nombre?: string;
+  celular?: string;
   password?: string;
   rol?: UserRole;
   is_active?: boolean;
+  recibir_notificaciones?: boolean;
   puede_acceder_ventas?: boolean;
   puede_acceder_guias?: boolean;
   puede_acceder_retenciones?: boolean;
@@ -30,8 +34,10 @@ const usersService = {
       id: number; 
       dni: string; 
       nombre: string; 
+      celular: string;
       rol: string; 
       is_active: boolean;
+      recibir_notificaciones: boolean;
       puede_acceder_ventas: boolean;
       puede_acceder_guias: boolean;
       puede_acceder_retenciones: boolean;

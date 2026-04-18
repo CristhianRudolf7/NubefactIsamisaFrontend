@@ -7,8 +7,8 @@ export const POLLING_INTERVAL = (Number(import.meta.env.VITE_POLLING_INTERVAL) |
 // Columnas por defecto para tabla de ventas
 export const VENTAS_COLUMNS: ColumnConfig[] = [
   { key: 'selection', title: '', visible: true, required: true, width: 40 },
-  { key: 'tipoDocumento', title: 'Tipo', visible: true, width: 100 },
   { key: 'serieNumero', title: 'Serie-Número', visible: true, width: 120 },
+  { key: 'tipoDocumento', title: 'Tipo', visible: true, width: 100 },
   { key: 'fechaEmision', title: 'Fecha Emisión', visible: true, width: 110 },
   { key: 'cliente', title: 'Cliente', visible: true, width: 200 },
   { key: 'monto', title: 'Monto Total', visible: true, width: 100 },

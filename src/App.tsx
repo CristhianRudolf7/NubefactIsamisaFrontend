@@ -24,6 +24,7 @@ import GuiasList from './pages/Guias/GuiasList';
 import GuiasDetail from './pages/Guias/GuiasDetail';
 import GuiasEdit from './pages/Guias/GuiasEdit';
 import UsersList from './pages/Users/UsersList';
+import AuditoriaList from './pages/Auditoria/AuditoriaList';
 
 import './styles/global.css';
 
@@ -74,6 +75,7 @@ function App() {
                     <Route path="/guias/:id/editar" element={<GuiasRoute><GuiasEdit /></GuiasRoute>} />
                     {/* Rutas solo para admin */}
                     <Route path="/usuarios" element={<AdminRoute><UsersList /></AdminRoute>} />
+                    <Route path="/auditoria" element={<AdminRoute><AuditoriaList /></AdminRoute>} />
                   </Route>
                 </Routes>
               </SidebarProvider>

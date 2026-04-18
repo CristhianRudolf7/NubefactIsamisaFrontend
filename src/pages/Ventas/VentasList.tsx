@@ -97,6 +97,7 @@ export default function VentasList() {
       cliente: `${v.VendorRUC} - ${v.VendorName}`,
       monto: formatCurrency(v.AmountTotalLo, v.DocumentCurrency === 'LO' ? 'S/' : '$'),
       estado: <StatusBadge estado={v.fe} />,
+      hash: v.codigo_hash ? `${v.codigo_hash.substring(0, 16)}...` : '-',
     }));
   }, [ventas]);
 

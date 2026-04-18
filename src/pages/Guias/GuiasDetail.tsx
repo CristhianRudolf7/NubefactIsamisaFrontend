@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Alert, Spin, App } from 'antd';
-import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined } from '@ant-design/icons';
-import { useGuia, useEnviarGuia } from '../../hooks/useGuias';
+import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
+import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
+import { useGuia, useEnviarGuia, useAnularGuia } from '../../hooks/useGuias';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
+import { guiasService } from '../../services/guiasService';
 
 export default function GuiasDetail() {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +15,9 @@ export default function GuiasDetail() {
   const { message } = App.useApp();
   const { data, isLoading } = useGuia(id!);
   const enviarMutation = useEnviarGuia();
+  const anularMutation = useAnularGuia();
+  const [showAnularModal, setShowAnularModal] = useState(false);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
 
   const documento = data?.data;
 
@@ -29,10 +34,24 @@ export default function GuiasDetail() {
   const canEdit = ['rechazado', 'error'].includes((cabecera.envio_nube || '').toLowerCase());
   const canSend = !cabecera.envio_nube || canEdit;
   const canDownload = cabecera.envio_nube && !['pendiente', 'error', 'rechazado'].includes((cabecera.envio_nube || '').toLowerCase());
+  // Mostrar anular solo si está rechazado o pendiente
+  const canAnular = ['rechazado', 'pendiente'].includes((cabecera.envio_nube || '').toLowerCase());
 
-  const handleDownloadPdf = () => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    window.open(`${baseUrl}/guias/${id}/pdf`, '_blank');
+  const handleDownloadPdf = async () => {
+    const result = await guiasService.descargarPdf(id!);
+    
+    if (result.success && result.blob) {
+      const url = window.URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cabecera.DocumentSerie}-${cabecera.DocumentNo}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      message.warning(result.error || 'PDF no disponible');
+    }
   };
 
   const handleDownloadXml = () => {
@@ -62,6 +81,30 @@ export default function GuiasDetail() {
     }
   };
 
+  const handleAnular = async () => {
+    if (!motivoAnulacion.trim()) {
+      message.error('Ingrese el motivo de anulación');
+      return;
+    }
+    try {
+      const result = await anularMutation.mutateAsync({
+        transactionId: cabecera.Transaction,
+        motivo: motivoAnulacion,
+        usuario,
+      });
+      if (result.success) {
+        message.success('Anulación procesada correctamente');
+        setShowAnularModal(false);
+        setMotivoAnulacion('');
+        navigate('/guias');
+      } else {
+        message.error(result.message || 'Error al anular');
+      }
+    } catch {
+      message.error('Error al anular guía');
+    }
+  };
+
   const detalleColumns = [
     { title: 'Línea', dataIndex: 'Line', key: 'Line', width: 60 },
     { title: 'Código', dataIndex: 'ItemCode', key: 'ItemCode', width: 100 },
@@ -84,6 +127,11 @@ export default function GuiasDetail() {
         {canEdit && (
           <Button icon={<EditOutlined />} onClick={() => navigate(`/guias/${id}/editar`)}>
             Editar
+          </Button>
+        )}
+        {canAnular && (
+          <Button danger icon={<StopOutlined />} onClick={() => setShowAnularModal(true)}>
+            Anular
           </Button>
         )}
         {canDownload && (
@@ -131,6 +179,29 @@ export default function GuiasDetail() {
           size="small"
         />
       </Card>
+
+      {/* Modal de anulación */}
+      <Modal
+        title="Anular Guía"
+        open={showAnularModal}
+        onCancel={() => {
+          setShowAnularModal(false);
+          setMotivoAnulacion('');
+        }}
+        onOk={handleAnular}
+        confirmLoading={anularMutation.isPending}
+        okText="Anular"
+        okButtonProps={{ danger: true }}
+      >
+        <p>¿Está seguro que desea anular la guía <strong>{cabecera.DocumentSerie}-{cabecera.DocumentNo}</strong>?</p>
+        <Input.TextArea
+          placeholder="Motivo de anulación"
+          value={motivoAnulacion}
+          onChange={(e) => setMotivoAnulacion(e.target.value)}
+          rows={3}
+          required
+        />
+      </Modal>
     </div>
   );
 }

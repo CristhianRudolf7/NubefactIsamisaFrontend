@@ -1,20 +1,26 @@
-import { Layout } from 'antd';
+import { Layout, Grid } from 'antd';
 import { Outlet } from 'react-router-dom';
 import { useSidebar } from '../../hooks/useSidebar';
 import Header from './Header';
 import Sidebar from './Sidebar';
 
 const { Content } = Layout;
+const { useBreakpoint } = Grid;
 
 export default function MainLayout() {
   const { collapsed } = useSidebar();
+  const screens = useBreakpoint();
+
+  // En pantallas pequeñas (md = 768px), el sidebar es overlay, no empuja el contenido
+  const isSmallScreen = !screens.md;
+  const marginLeft = isSmallScreen ? 0 : (collapsed ? 80 : 240);
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Sidebar />
       <Layout
         style={{
-          marginLeft: collapsed ? 80 : 240,
+          marginLeft,
           transition: 'margin-left 0.2s',
         }}
       >

@@ -25,18 +25,32 @@ export function useEnviarRetencion() {
   return useMutation({
     mutationFn: ({ retencionId, usuario }: { retencionId: number; usuario: string }) =>
       retencionesService.enviar(retencionId, usuario),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['retenciones'] });
+      queryClient.invalidateQueries({ queryKey: ['retencion', variables.retencionId] });
     },
   });
 }
 
 export function useActualizarRetencion() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ retencionId, datos, usuario }: { retencionId: number; datos: Record<string, unknown>; usuario: string }) =>
       retencionesService.actualizar(retencionId, datos, usuario),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['retenciones'] });
+      queryClient.invalidateQueries({ queryKey: ['retencion', variables.retencionId] });
+    },
+  });
+}
+
+export function useAnularRetencion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ retencionId, motivo, usuario }: { retencionId: number; motivo: string; usuario: string }) =>
+      retencionesService.anular(retencionId, motivo, usuario),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['retenciones'] });
       queryClient.invalidateQueries({ queryKey: ['retencion', variables.retencionId] });

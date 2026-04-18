@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Table, Divider, Modal } from 'antd';
-import { ArrowLeftOutlined, SaveOutlined, SendOutlined, PlusOutlined, DeleteOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, SaveOutlined, SendOutlined, PlusOutlined, DeleteOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import { useVenta, useActualizarVenta, useEnviarVenta } from '../../hooks/useVentas';
 import { useAppContext } from '../../contexts/AppContext';
 
@@ -28,7 +28,12 @@ export default function VentasEdit() {
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  const { data, isLoading } = useVenta(id!);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    message.success('Error copiado al portapapeles');
+  };
+
+  const { data, isLoading, refetch } = useVenta(id!);
   const actualizarMutation = useActualizarVenta();
   const enviarMutation = useEnviarVenta();
 
@@ -153,9 +158,11 @@ export default function VentasEdit() {
         message.success('Documento actualizado y enviado');
         navigate('/ventas');
       } else {
-        const errorMsg = result.message || result.error || 'Error al enviar';
-        message.error(errorMsg);
-        setErrorMessage(errorMsg);
+        // Refrescar datos para obtener el error actualizado de la BD
+        const { data: newData } = await refetch();
+        const newError = newData?.data?.cabecera?.error_mensaje || result.message || result.error || 'Error al enviar';
+        message.error(newError);
+        setErrorMessage(newError);
         setErrorModalVisible(true);
       }
     } catch {
@@ -347,7 +354,7 @@ export default function VentasEdit() {
 
           <Divider />
 
-          <Space>
+          <Space wrap>
             <Button
               type="primary"
               htmlType="submit"
@@ -386,6 +393,9 @@ export default function VentasEdit() {
         open={errorModalVisible}
         onCancel={() => setErrorModalVisible(false)}
         footer={[
+          <Button key="copy" icon={<CopyOutlined />} onClick={() => copyToClipboard(errorMessage)}>
+            Copiar Error
+          </Button>,
           <Button key="close" onClick={() => setErrorModalVisible(false)}>
             Cerrar
           </Button>

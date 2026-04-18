@@ -32,4 +32,41 @@ export const guiasService = {
     });
     return response.data;
   },
+
+  async consultar(transactionId: string): Promise<ResponseBase> {
+    const response = await api.post(`/guias/${transactionId}/consultar`);
+    return response.data;
+  },
+
+  async descargarPdf(transactionId: string): Promise<{ success: boolean; blob?: Blob; error?: string }> {
+    try {
+      const response = await api.get(`/guias/${transactionId}/pdf`, {
+        responseType: 'blob',
+      });
+      
+      // Verificar si es un PDF
+      if (response.data.type === 'application/pdf') {
+        return { success: true, blob: response.data };
+      }
+      
+      // Si no es PDF, intentar parsear como JSON (error)
+      const text = await response.data.text();
+      try {
+        const json = JSON.parse(text);
+        return { success: false, error: json.detail || 'PDF no disponible' };
+      } catch {
+        return { success: false, error: 'PDF no disponible' };
+      }
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      return { success: false, error: axiosError.response?.data?.detail || 'Error al descargar PDF' };
+    }
+  },
+
+  async anular(transactionId: string, motivo: string, usuario: string): Promise<ResponseBase> {
+    const response = await api.post(`/guias/${transactionId}/anular`, null, {
+      params: { motivo, usuario },
+    });
+    return response.data;
+  },
 };

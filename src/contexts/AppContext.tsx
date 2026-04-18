@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
+import { useAuth } from './AuthContext';
 
 interface AppContextType {
   usuario: string;
-  setUsuario: (usuario: string) => void;
   notificaciones: number;
   setNotificaciones: (count: number) => void;
 }
@@ -10,11 +10,14 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [usuario, setUsuario] = useState('usuario_demo');
+  const { user } = useAuth();
   const [notificaciones, setNotificaciones] = useState(0);
 
+  // Obtener usuario del contexto de autenticación
+  const usuario = user?.nombre || 'Sistema';
+
   return (
-    <AppContext.Provider value={{ usuario, setUsuario, notificaciones, setNotificaciones }}>
+    <AppContext.Provider value={{ usuario, notificaciones, setNotificaciones }}>
       {children}
     </AppContext.Provider>
   );

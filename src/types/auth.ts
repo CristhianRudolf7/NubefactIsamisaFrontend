@@ -6,8 +6,10 @@ export interface User {
   id: number;
   dni: string;
   nombre: string;
+  celular: string;
   rol: UserRole;
   is_active: boolean;
+  recibir_notificaciones: boolean;
   puede_acceder_ventas: boolean;
   puede_acceder_guias: boolean;
   puede_acceder_retenciones: boolean;

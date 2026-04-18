@@ -1,7 +1,8 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Descriptions, Table, Button, Space, Alert, Spin, App } from 'antd';
-import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined } from '@ant-design/icons';
-import { useRetencion, useEnviarRetencion } from '../../hooks/useRetenciones';
+import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
+import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
+import { useRetencion, useEnviarRetencion, useAnularRetencion } from '../../hooks/useRetenciones';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate, formatCurrency } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -13,6 +14,9 @@ export default function RetencionesDetail() {
   const { message } = App.useApp();
   const { data, isLoading } = useRetencion(Number(id));
   const enviarMutation = useEnviarRetencion();
+  const anularMutation = useAnularRetencion();
+  const [showAnularModal, setShowAnularModal] = useState(false);
+  const [motivoAnulacion, setMotivoAnulacion] = useState('');
 
   const documento = data?.data;
 
@@ -29,6 +33,8 @@ export default function RetencionesDetail() {
   const canEdit = ['rechazado', 'error'].includes((cabecera.status || '').toLowerCase());
   const canSend = !cabecera.status || canEdit;
   const canDownload = cabecera.status && !['pendiente', 'error', 'rechazado'].includes((cabecera.status || '').toLowerCase());
+  // Mostrar anular solo si está rechazado o pendiente
+  const canAnular = ['rechazado', 'pendiente'].includes((cabecera.status || '').toLowerCase());
 
   const handleDownloadPdf = () => {
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
@@ -62,6 +68,30 @@ export default function RetencionesDetail() {
     }
   };
 
+  const handleAnular = async () => {
+    if (!motivoAnulacion.trim()) {
+      message.error('Ingrese el motivo de anulación');
+      return;
+    }
+    try {
+      const result = await anularMutation.mutateAsync({
+        retencionId: cabecera.Id,
+        motivo: motivoAnulacion,
+        usuario,
+      });
+      if (result.success) {
+        message.success('Anulación procesada correctamente');
+        setShowAnularModal(false);
+        setMotivoAnulacion('');
+        navigate('/retenciones');
+      } else {
+        message.error(result.message || 'Error al anular');
+      }
+    } catch {
+      message.error('Error al anular retención');
+    }
+  };
+
   const detalleColumns = [
     { title: 'Serie Doc.', dataIndex: 'DRserie', key: 'DRserie' },
     { title: 'Nº Doc.', dataIndex: 'DRnumero', key: 'DRnumero' },
@@ -85,6 +115,11 @@ export default function RetencionesDetail() {
         {canEdit && (
           <Button icon={<EditOutlined />} onClick={() => navigate(`/retenciones/${id}/editar`)}>
             Editar
+          </Button>
+        )}
+        {canAnular && (
+          <Button danger icon={<StopOutlined />} onClick={() => setShowAnularModal(true)}>
+            Anular
           </Button>
         )}
         {canDownload && (
@@ -142,6 +177,29 @@ export default function RetencionesDetail() {
           </Descriptions>
         </Card>
       )}
+
+      {/* Modal de anulación */}
+      <Modal
+        title="Anular Retención"
+        open={showAnularModal}
+        onCancel={() => {
+          setShowAnularModal(false);
+          setMotivoAnulacion('');
+        }}
+        onOk={handleAnular}
+        confirmLoading={anularMutation.isPending}
+        okText="Anular"
+        okButtonProps={{ danger: true }}
+      >
+        <p>¿Está seguro que desea anular la retención <strong>{cabecera.Serie}-{cabecera.Numero}</strong>?</p>
+        <Input.TextArea
+          placeholder="Motivo de anulación"
+          value={motivoAnulacion}
+          onChange={(e) => setMotivoAnulacion(e.target.value)}
+          rows={3}
+          required
+        />
+      </Modal>
     </div>
   );
 }

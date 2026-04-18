@@ -32,4 +32,11 @@ export const retencionesService = {
     });
     return response.data;
   },
+
+  async anular(retencionId: number, motivo: string, usuario: string): Promise<ResponseBase> {
+    const response = await api.post(`/retenciones/${retencionId}/anular`, null, {
+      params: { motivo, usuario },
+    });
+    return response.data;
+  },
 };
