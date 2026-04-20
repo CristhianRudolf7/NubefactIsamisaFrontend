@@ -6,7 +6,8 @@ export type EstadoDocumento =
   | 'aceptado' 
   | 'aceptado_observaciones' 
   | 'rechazado' 
-  | 'error';
+  | 'error'
+  | 'anulado';
 
 export interface ResponseBase<T = unknown> {
   success: boolean;

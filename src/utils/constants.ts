@@ -48,11 +48,12 @@ export const GUIAS_COLUMNS: ColumnConfig[] = [
 // Estados posibles
 export const ESTADOS_DOCUMENTO = [
   { value: 'pendiente', label: 'Pendiente' },
-  { value: 'enviado_nubefact', label: 'Enviado a NubeFact' },
-  { value: 'aceptado', label: 'Aceptado por SUNAT' },
-  { value: 'aceptado_observaciones', label: 'Aceptado con observaciones' },
+  { value: 'enviado', label: 'Enviado' },
+  { value: 'aceptado', label: 'Aceptado' },
+  { value: 'aceptado_observaciones', label: 'Observado' },
   { value: 'rechazado', label: 'Rechazado' },
   { value: 'error', label: 'Error' },
+  { value: 'anulado', label: 'Anulado' },
 ];
 
 // Tipos de documento de venta

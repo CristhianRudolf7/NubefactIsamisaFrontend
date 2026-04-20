@@ -36,8 +36,8 @@ api.interceptors.response.use(
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const url = error.config?.url || '';
 
-    // No intentar refresh para endpoints de autenticación (excepto /auth/me que debe refrescarse)
-    const authEndpoints = ['/auth/login', '/auth/logout', '/auth/refresh'];
+    // No intentar refresh para endpoints de autenticación
+    const authEndpoints = ['/auth/login', '/auth/logout', '/auth/refresh', '/auth/me'];
     const isAuthEndpoint = authEndpoints.some(endpoint => url.includes(endpoint));
 
     // Si es 401 y no es endpoint de auth y no estamos en login
@@ -81,7 +81,10 @@ api.interceptors.response.use(
       }
     }
 
-    console.error('API Error:', error.response?.data || error.message);
+    // No mostrar error 401 en console para /auth/me (es normal cuando no hay sesión)
+    if (!(url.includes('/auth/me') && error.response?.status === 401)) {
+      console.error('API Error:', error.response?.data || error.message);
+    }
     return Promise.reject(error);
   }
 );

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import {
   Table, Card, Row, Col, Statistic, Tag, Space, Button, Modal, DatePicker,
-  Select, Input, Typography, Descriptions, Spin, Empty, Tooltip, Badge
+  Select, Input, Typography, Descriptions, Spin, Empty, Tooltip, Badge, Alert
 } from 'antd';
 import {
   AuditOutlined, EyeOutlined, ReloadOutlined, UserOutlined,
@@ -157,6 +157,18 @@ export default function AuditoriaList() {
       return <Empty description={`Sin datos ${titulo.toLowerCase()}`} />;
     }
 
+    // Función para formatear fechas Excel (número de días desde 1899-12-30)
+    const formatExcelDate = (value: unknown): string | null => {
+      if (typeof value !== 'number') return null;
+      // Si es un número grande como timestamp de Excel
+      if (value > 10000) {
+        const excelEpoch = new Date(1899, 11, 30);
+        const date = new Date(excelEpoch.getTime() + value * 24 * 60 * 60 * 1000);
+        return dayjs(date).format('DD/MM/YYYY');
+      }
+      return null;
+    };
+
     // Función para renderizar valor
     const renderValue = (value: unknown): React.ReactNode => {
       if (value === null || value === undefined) {
@@ -166,7 +178,9 @@ export default function AuditoriaList() {
         return <Tag color={value ? 'green' : 'red'}>{value ? 'Sí' : 'No'}</Tag>;
       }
       if (typeof value === 'number') {
-        return <Text>{value}</Text>;
+        const dateStr = formatExcelDate(value);
+        if (dateStr) return <Text>{dateStr}</Text>;
+        return <Text>{value.toLocaleString('es-PE')}</Text>;
       }
       if (typeof value === 'string') {
         if (value.match(/^\d{4}-\d{2}-\d{2}T/)) {
@@ -179,11 +193,12 @@ export default function AuditoriaList() {
           return <Text type="secondary">Sin items</Text>;
         }
         // Si es array de objetos, mostrar tabla
-        if (typeof value[0] === 'object') {
-          const columns = Object.keys(value[0]).map(key => ({
+        if (typeof value[0] === 'object' && value[0] !== null) {
+          const columns = Object.keys(value[0] as Record<string, unknown>).map(key => ({
             title: key,
             dataIndex: key,
             key: key,
+            width: 120,
             render: (v: unknown) => renderValue(v),
           }));
           return (
@@ -194,6 +209,7 @@ export default function AuditoriaList() {
               size="small"
               pagination={false}
               scroll={{ x: true }}
+              bordered
             />
           );
         }
@@ -205,43 +221,61 @@ export default function AuditoriaList() {
       return <Text>{String(value)}</Text>;
     };
 
-    // Separar cabecera y detalles
-    const { cabecera, detalles, ...rest } = datos as {
-      cabecera?: Record<string, unknown>;
-      detalles?: unknown[];
-      [key: string]: unknown;
-    };
+    // Extraer datos - manejar estructura anidada y plana
+    let cabecera: Record<string, unknown> | undefined;
+    let detalles: unknown[] | undefined;
+    let motivo: string | undefined;
+
+    if (datos.documento && typeof datos.documento === 'object') {
+      // Caso 1: Estructura anidada (ej: envíos SUNAT)
+      const doc = datos.documento as Record<string, unknown>;
+      cabecera = doc.cabecera as Record<string, unknown> | undefined;
+      detalles = doc.detalles as unknown[] | undefined;
+      motivo = (datos.motivo || doc.motivo) as string | undefined;
+    } else {
+      // Caso 2: Estructura plana o mixta (ej: actualizaciones, anulaciones)
+      const { cabecera: c, detalles: d, items, motivo: m, ...rest } = datos;
+      detalles = (d || items) as unknown[] | undefined;
+      motivo = m as string | undefined;
+      
+      if (c && typeof c === 'object') {
+        cabecera = { ...(c as Record<string, unknown>), ...rest };
+      } else {
+        cabecera = rest as Record<string, unknown>;
+      }
+    }
 
     return (
       <div style={{ maxHeight: 500, overflow: 'auto' }}>
         {/* Cabecera */}
-        {cabecera && (
-          <Descriptions column={1} size="small" bordered style={{ marginBottom: detalles ? 16 : 0 }}>
-            {Object.entries(cabecera).map(([key, value]) => (
-              <Descriptions.Item key={key} label={<Text strong>{key}</Text>}>
-                {renderValue(value)}
-              </Descriptions.Item>
-            ))}
-          </Descriptions>
+        {cabecera && Object.keys(cabecera).length > 0 && (
+          <Card size="small" title={<Text strong>Datos del Documento</Text>} style={{ marginBottom: 16 }}>
+            <Descriptions column={1} size="small" bordered>
+              {Object.entries(cabecera).map(([key, value]) => (
+                <Descriptions.Item key={key} label={<Text strong style={{ fontSize: 12 }}>{key}</Text>}>
+                  {renderValue(value)}
+                </Descriptions.Item>
+              ))}
+            </Descriptions>
+          </Card>
         )}
 
-        {/* Otros campos que no sean cabecera ni detalles */}
-        {Object.keys(rest).length > 0 && (
-          <Descriptions column={1} size="small" bordered style={{ marginBottom: detalles ? 16 : 0 }}>
-            {Object.entries(rest).map(([key, value]) => (
-              <Descriptions.Item key={key} label={<Text strong>{key}</Text>}>
-                {renderValue(value)}
-              </Descriptions.Item>
-            ))}
-          </Descriptions>
+        {/* Motivo de anulación si existe */}
+        {motivo && (
+          <Alert
+            message="Motivo de Anulación"
+            description={motivo}
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
         )}
 
         {/* Detalles en tabla */}
         {detalles && Array.isArray(detalles) && detalles.length > 0 && (
-          <div>
-            <Text strong style={{ marginBottom: 8, display: 'block' }}>Items ({detalles.length})</Text>
+          <Card size="small" title={<Text strong>Items del Documento ({detalles.length})</Text>}>
             {renderValue(detalles)}
-          </div>
+          </Card>
         )}
       </div>
     );

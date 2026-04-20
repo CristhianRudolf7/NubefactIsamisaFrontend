@@ -1,4 +1,28 @@
 import dayjs from 'dayjs';
+import 'dayjs/locale/es';
+import utc from 'dayjs/plugin/utc';
+import timezone from 'dayjs/plugin/timezone';
+
+// Configurar plugins
+dayjs.extend(utc);
+dayjs.extend(timezone);
+dayjs.locale('es');
+
+// Formatea fecha con hora de Perú
+export function formatDateTime(date: string | Date | undefined | null, format: string = 'DD/MM/YYYY HH:mm:ss'): string {
+  if (!date) return '-';
+  return dayjs(date).tz('America/Lima').format(format);
+}
+
+export function formatDate(date: string | Date | undefined | null, format: string = 'DD/MM/YYYY'): string {
+  if (!date) return '-';
+  return dayjs(date).tz('America/Lima').format(format);
+}
+
+// Obtiene fecha actual en Perú
+export function nowPeru(): dayjs.Dayjs {
+  return dayjs().tz('America/Lima');
+}
 
 // Convierte fecha de Excel (número) a formato legible
 export function formatExcelDate(excelDate: number | undefined | null, format: string = 'DD/MM/YYYY'): string {
@@ -68,6 +92,8 @@ export function getEstadoClass(estado: string | undefined): string {
     return 'status-sent';
   } else if (estadoLower.includes('error')) {
     return 'status-error';
+  } else if (estadoLower.includes('anulado')) {
+    return 'status-rejected';
   }
   
   return 'status-pending';
@@ -85,6 +111,7 @@ export function getEstadoColor(estado: string | undefined): string {
     rechazado: '#ff4d4f',
     rechazada: '#ff4d4f',
     error: '#ff4d4f',
+    anulado: '#faad14',
   };
 
   return colorMap[estado?.toLowerCase() || 'pendiente'] || '#faad14';

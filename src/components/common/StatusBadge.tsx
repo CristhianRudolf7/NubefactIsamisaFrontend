@@ -12,9 +12,11 @@ const estadoLabels: Record<string, string> = {
   aceptado: 'Aceptado',
   aceptada: 'Aceptado',
   aceptado_observaciones: 'Observado',
+  aceptada_observaciones: 'Observado',
   rechazado: 'Rechazado',
   rechazada: 'Rechazado',
   error: 'Error',
+  anulado: 'Anulado',
 };
 
 export default function StatusBadge({ estado }: StatusBadgeProps) {
