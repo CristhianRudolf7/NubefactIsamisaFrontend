@@ -41,3 +41,11 @@ export function useResumenPorEstado(tipo: 'ventas' | 'retenciones' | 'guias') {
     refetchInterval: POLLING_INTERVAL,
   });
 }
+
+export function useActividadSemanal() {
+  return useQuery({
+    queryKey: ['dashboard', 'actividad-semanal'],
+    queryFn: () => dashboardService.actividadSemanal(),
+    refetchInterval: POLLING_INTERVAL,
+  });
+}

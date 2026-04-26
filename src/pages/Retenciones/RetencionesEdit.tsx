@@ -198,22 +198,22 @@ export default function RetencionesEdit() {
           onFinish={handleSave}
         >
           <Form.Item label="Serie" name="Serie">
-            <Input />
+            <Input disabled />
           </Form.Item>
           <Form.Item label="Fecha de Emisión" name="DocumentDate">
-            <DatePicker style={{ width: '100%' }} format="DD-MM-YYYY" placeholder="Seleccionar fecha" />
+            <DatePicker style={{ width: '100%' }} format="DD-MM-YYYY" disabled />
           </Form.Item>
-          <Form.Item label="RUC Proveedor" name="VendorRuc">
-            <Input />
+          <Form.Item label="RUC/DNI Proveedor" name="VendorRuc">
+            <Input disabled />
           </Form.Item>
           <Form.Item label="Nombre Proveedor" name="VendorName">
-            <Input />
+            <Input disabled />
           </Form.Item>
           <Form.Item label="Dirección" name="VendorAddress">
-            <Input />
+            <Input disabled />
           </Form.Item>
           <Form.Item label="Tasa (%)" name="Tasa">
-            <InputNumber style={{ width: '100%' }} min={0} max={100} />
+            <InputNumber style={{ width: '100%' }} disabled />
           </Form.Item>
           <Form.Item label="Total Retenido" name="TotalRetenido">
             <InputNumber style={{ width: '100%' }} />
@@ -222,7 +222,7 @@ export default function RetencionesEdit() {
             <InputNumber style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item label="Observaciones" name="Obs">
-            <Input.TextArea rows={3} />
+            <Input.TextArea rows={3} disabled />
           </Form.Item>
 
           <Divider>Detalles de Retención</Divider>
@@ -238,81 +238,42 @@ export default function RetencionesEdit() {
                 dataIndex: 'DRserie',
                 key: 'DRserie',
                 width: 100,
-                render: (value: string, record: RetencionDetalle) => (
-                  <Input 
-                    value={value} 
-                    onChange={(e) => handleItemChange(record.ID, 'DRserie', e.target.value)}
-                  />
-                ),
+                render: (value: string) => value,
               },
               {
                 title: 'Doc. Número',
                 dataIndex: 'DRnumero',
                 key: 'DRnumero',
                 width: 100,
-                render: (value: string, record: RetencionDetalle) => (
-                  <Input 
-                    value={value} 
-                    onChange={(e) => handleItemChange(record.ID, 'DRnumero', e.target.value)}
-                  />
-                ),
+                render: (value: string) => value,
               },
               {
                 title: 'Doc. Fecha',
                 dataIndex: 'DRfecha',
                 key: 'DRfecha',
                 width: 130,
-                render: (value: number | undefined, record: RetencionDetalle) => (
-                  <DatePicker 
-                    value={excelToDayjs(value)} 
-                    onChange={(date) => handleItemChange(record.ID, 'DRfecha', dayjsToExcel(date))}
-                    format="DD-MM-YYYY"
-                    style={{ width: '100%' }}
-                  />
-                ),
+                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
               },
               {
                 title: 'Moneda',
                 dataIndex: 'DRmoneda',
                 key: 'DRmoneda',
                 width: 80,
-                render: (value: string, record: RetencionDetalle) => (
-                  <Select 
-                    value={value} 
-                    onChange={(v) => handleItemChange(record.ID, 'DRmoneda', v)}
-                    style={{ width: '100%' }}
-                  >
-                    <Select.Option value="PEN">PEN</Select.Option>
-                    <Select.Option value="USD">USD</Select.Option>
-                  </Select>
-                ),
+                render: (value: string) => value,
               },
               {
                 title: 'Total Doc.',
                 dataIndex: 'DRtotal',
                 key: 'DRtotal',
                 width: 100,
-                render: (value: number, record: RetencionDetalle) => (
-                  <InputNumber 
-                    value={value} 
-                    onChange={(v) => handleItemChange(record.ID, 'DRtotal', v ?? 0)}
-                    style={{ width: '100%' }}
-                  />
-                ),
+                render: (value: number) => value.toFixed(2),
               },
               {
                 title: 'Fecha Pago',
                 dataIndex: 'DRpagoFecha',
                 key: 'DRpagoFecha',
                 width: 130,
-                render: (value: number | undefined, record: RetencionDetalle) => (
-                  <DatePicker 
-                    value={excelToDayjs(value)} 
-                    onChange={(date) => handleItemChange(record.ID, 'DRpagoFecha', dayjsToExcel(date))}
-                    format="DD-MM-YYYY"
-                    style={{ width: '100%' }}
-                  />
-                ),
+                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
               },
               {
                 title: 'Nro. Pago',
@@ -331,42 +292,21 @@ export default function RetencionesEdit() {
                 dataIndex: 'DRpagoTotal',
                 key: 'DRpagoTotal',
                 width: 100,
-                render: (value: number, record: RetencionDetalle) => (
-                  <InputNumber 
-                    value={value} 
-                    onChange={(v) => handleItemChange(record.ID, 'DRpagoTotal', v ?? 0)}
-                    style={{ width: '100%' }}
-                  />
-                ),
+                render: (value: number) => value.toFixed(2),
               },
               {
                 title: 'T.C.',
                 dataIndex: 'TipoCambio',
                 key: 'TipoCambio',
                 width: 80,
-                render: (value: number, record: RetencionDetalle) => (
-                  <InputNumber 
-                    value={value} 
-                    onChange={(v) => handleItemChange(record.ID, 'TipoCambio', v ?? 0)}
-                    style={{ width: '100%' }}
-                    min={0}
-                    step={0.001}
-                  />
-                ),
+                render: (value: number) => value.toFixed(3),
               },
               {
                 title: 'Fecha T.C.',
                 dataIndex: 'TipoCambioFecha',
                 key: 'TipoCambioFecha',
                 width: 130,
-                render: (value: number | undefined, record: RetencionDetalle) => (
-                  <DatePicker 
-                    value={excelToDayjs(value)} 
-                    onChange={(date) => handleItemChange(record.ID, 'TipoCambioFecha', dayjsToExcel(date))}
-                    format="DD-MM-YYYY"
-                    style={{ width: '100%' }}
-                  />
-                ),
+                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
               },
               {
                 title: 'Retenido',
@@ -386,14 +326,7 @@ export default function RetencionesEdit() {
                 dataIndex: 'RetenidoFecha',
                 key: 'RetenidoFecha',
                 width: 130,
-                render: (value: number | undefined, record: RetencionDetalle) => (
-                  <DatePicker 
-                    value={excelToDayjs(value)} 
-                    onChange={(date) => handleItemChange(record.ID, 'RetenidoFecha', dayjsToExcel(date))}
-                    format="DD-MM-YYYY"
-                    style={{ width: '100%' }}
-                  />
-                ),
+                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
               },
               {
                 title: 'Pagado',

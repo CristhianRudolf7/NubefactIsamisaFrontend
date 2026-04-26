@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Table, Divider, Modal } from 'antd';
+import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Table, Divider, Modal, Select } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined, PlusOutlined, DeleteOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import { useVenta, useActualizarVenta, useEnviarVenta } from '../../hooks/useVentas';
 import { useAppContext } from '../../contexts/AppContext';
@@ -182,69 +182,34 @@ export default function VentasEdit() {
       dataIndex: 'ItemCode',
       key: 'ItemCode',
       width: 100,
-      render: (value: string, record: ItemDetalle) => (
-        <Input
-          value={value}
-          onChange={(e) => handleItemChange(record.Line, 'ItemCode', e.target.value)}
-          size="small"
-        />
-      ),
+      render: (value: string) => value,
     },
     {
       title: 'Descripción',
       dataIndex: 'Description',
       key: 'Description',
-      render: (value: string, record: ItemDetalle) => (
-        <Input
-          value={value}
-          onChange={(e) => handleItemChange(record.Line, 'Description', e.target.value)}
-          size="small"
-        />
-      ),
+      render: (value: string) => value,
     },
     {
       title: 'Unidad',
       dataIndex: 'Unit',
       key: 'Unit',
       width: 80,
-      render: (value: string, record: ItemDetalle) => (
-        <Input
-          value={value}
-          onChange={(e) => handleItemChange(record.Line, 'Unit', e.target.value)}
-          size="small"
-        />
-      ),
+      render: (value: string) => value,
     },
     {
       title: 'Cantidad',
       dataIndex: 'Quantity',
       key: 'Quantity',
       width: 100,
-      render: (value: number, record: ItemDetalle) => (
-        <InputNumber
-          value={value}
-          onChange={(v) => handleItemChange(record.Line, 'Quantity', v || 0)}
-          size="small"
-          min={0}
-          style={{ width: '100%' }}
-        />
-      ),
+      render: (value: number) => value,
     },
     {
       title: 'Precio Unit.',
       dataIndex: 'Price',
       key: 'Price',
       width: 100,
-      render: (value: number, record: ItemDetalle) => (
-        <InputNumber
-          value={value}
-          onChange={(v) => handleItemChange(record.Line, 'Price', v || 0)}
-          size="small"
-          min={0}
-          precision={2}
-          style={{ width: '100%' }}
-        />
-      ),
+      render: (value: number) => value.toFixed(2),
     },
     {
       title: 'SubTotal',
@@ -266,19 +231,6 @@ export default function VentasEdit() {
       key: 'Total',
       width: 100,
       render: (value: number) => value.toFixed(2),
-    },
-    {
-      title: '',
-      key: 'actions',
-      width: 50,
-      render: (_: unknown, record: ItemDetalle) => (
-        <Button
-          type="text"
-          danger
-          icon={<DeleteOutlined />}
-          onClick={() => handleRemoveItem(record.Line)}
-        />
-      ),
     },
   ];
 
@@ -307,11 +259,11 @@ export default function VentasEdit() {
             VendorRUC: cabecera.VendorRUC,
             VendorName: cabecera.VendorName,
             VendorAddress: cabecera.VendorAddress,
-            VendorEmail: cabecera.VendorEmail,
+            CondicionPago: cabecera.CondicionPago || 'CONTADO',
           }}
           onFinish={handleSave}
         >
-          <Form.Item label="RUC Cliente" name="VendorRUC">
+          <Form.Item label="RUC/DNI Cliente" name="VendorRUC">
             <Input />
           </Form.Item>
           <Form.Item label="Nombre Cliente" name="VendorName">
@@ -320,20 +272,16 @@ export default function VentasEdit() {
           <Form.Item label="Dirección" name="VendorAddress">
             <Input />
           </Form.Item>
-          <Form.Item label="Email" name="VendorEmail">
-            <Input type="email" />
+          <Form.Item label="Tipo de Pago" name="CondicionPago">
+            <Select>
+              <Select.Option value="CONTADO">CONTADO</Select.Option>
+              <Select.Option value="CREDITO">CRÉDITO</Select.Option>
+            </Select>
           </Form.Item>
 
           <Divider>Items del Documento</Divider>
 
-          <Button
-            type="dashed"
-            icon={<PlusOutlined />}
-            onClick={handleAddItem}
-            style={{ marginBottom: 16, width: '100%' }}
-          >
-            Agregar Item
-          </Button>
+
 
           <Table
             dataSource={items}

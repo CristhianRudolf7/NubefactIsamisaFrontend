@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Modal } from 'antd';
+import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Modal, Divider } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import { useGuia, useActualizarGuia, useEnviarGuia } from '../../hooks/useGuias';
 import { useAppContext } from '../../contexts/AppContext';
@@ -102,57 +102,100 @@ export default function GuiasEdit() {
             TargetPersonRUC: cabecera.TargetPersonRUC,
             TargetPersonName: cabecera.TargetPersonName,
             TargetAddress: cabecera.TargetAddress,
+            ubigeo_des: cabecera.ubigeo_des,
             MotivoTraslado: cabecera.MotivoTraslado,
             PesoBruto: cabecera.PesoBruto,
             RucTransportista: cabecera.RucTransportista,
             Transportista: cabecera.Transportista,
             VehicleID: cabecera.VehicleID,
-            Driver: cabecera.Driver,
+            DriverDNI: cabecera.DriverId,
+            DriverNombre: cabecera.Driver ? (cabecera.Driver.split(' ').slice(2).join(' ') || '') : '',
+            DriverApellido: cabecera.Driver ? (cabecera.Driver.split(' ').slice(0, 2).join(' ') || '') : '',
             LicenciaConducir: cabecera.LicenciaConducir,
             origenaddress: cabecera.origenaddress,
-            ubigeo_des: cabecera.ubigeo_des,
+            SaleDocSerie: cabecera.SaleDocSerie,
+            SaleDocNo: cabecera.SaleDocNo,
             Comments: cabecera.Comments,
           }}
           onFinish={handleSave}
         >
-          <Form.Item label="RUC Destinatario" name="TargetPersonRUC">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Nombre Destinatario" name="TargetPersonName">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Dirección Destino" name="TargetAddress">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Motivo de Traslado" name="MotivoTraslado">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Peso Bruto (kg)" name="PesoBruto">
-            <InputNumber style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item label="RUC Transportista" name="RucTransportista">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Transportista" name="Transportista">
-            <Input />
-          </Form.Item>
-          <Form.Item label="ID Vehículo" name="VehicleID">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Conductor" name="Driver">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Licencia de Conducir" name="LicenciaConducir">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Dirección Origen" name="origenaddress">
-            <Input />
-          </Form.Item>
-          <Form.Item label="Ubigeo Destino" name="ubigeo_des">
-            <Input />
-          </Form.Item>
+          <Divider>Remitente</Divider>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="Dirección Origen" name="origenaddress" style={{ flex: 2 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Ubigeo Origen" name="ubigeo_des" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+
+          <Divider>Destinatario</Divider>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="RUC/DNI Destinatario" name="TargetPersonRUC" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Nombre Destinatario" name="TargetPersonName" style={{ flex: 2 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="Dirección Destino" name="TargetAddress" style={{ flex: 2 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Ubigeo Destino" name="ubigeo_des" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+
+          <Divider>Transportista</Divider>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="RUC Transportista" name="RucTransportista" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Transportista" name="Transportista" style={{ flex: 2 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Placa" name="VehicleID" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="DNI Conductor" name="DriverDNI" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Nombre Conductor" name="DriverNombre" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Apellido Conductor" name="DriverApellido" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Licencia" name="LicenciaConducir" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+
+          <Divider>Información del Traslado</Divider>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="Motivo de Traslado" name="MotivoTraslado" style={{ flex: 2 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Peso Bruto (kg)" name="PesoBruto" style={{ flex: 1 }}>
+              <InputNumber style={{ width: '100%' }} />
+            </Form.Item>
+          </Space>
+
+          <Divider>Documento de Referencia</Divider>
+          <Space size="middle" style={{ width: '100%' }}>
+            <Form.Item label="Serie Factura" name="SaleDocSerie" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Número Factura" name="SaleDocNo" style={{ flex: 1 }}>
+              <Input />
+            </Form.Item>
+          </Space>
+
           <Form.Item label="Comentarios" name="Comments">
-            <Input.TextArea rows={3} />
+            <Input.TextArea rows={2} disabled />
           </Form.Item>
 
           <Space wrap>

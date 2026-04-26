@@ -28,4 +28,9 @@ export const dashboardService = {
     });
     return response.data;
   },
+
+  async actividadSemanal(): Promise<ResponseBase<{ fecha: string; cantidad: number }[]>> {
+    const response = await api.get('/dashboard/actividad-semanal');
+    return response.data;
+  },
 };

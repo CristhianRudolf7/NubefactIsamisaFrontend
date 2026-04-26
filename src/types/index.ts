@@ -143,6 +143,9 @@ export interface GuiaRemision {
   Status?: string;
   Comments?: string;
   error_mensaje?: string;
+  DriverId?: string;
+  SaleDocSerie?: string;
+  SaleDocNo?: string;
 }
 
 export interface GuiaRemisionDetalle {
