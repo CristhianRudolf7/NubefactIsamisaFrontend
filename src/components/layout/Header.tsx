@@ -1,12 +1,15 @@
-import { Layout, Breadcrumb, Badge, Avatar, Dropdown, Space, Tag, Grid } from 'antd';
-import { BellOutlined, UserOutlined, LogoutOutlined, SettingOutlined } from '@ant-design/icons';
+import { useState } from 'react';
+import { Layout, Breadcrumb, Avatar, Dropdown, Space, Tag, Grid, Button, Typography } from 'antd';
+import { UserOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
 import { useLocation, Link } from 'react-router-dom';
-import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../hooks/useSidebar';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { Form, Modal, Input, message } from 'antd';
+import authService from '../../services/authService';
 
 const { Header: AntHeader } = Layout;
+const { Title, Text } = Typography;
 
 const breadcrumbNameMap: Record<string, string> = {
   '/': 'Dashboard',
@@ -18,9 +21,12 @@ const breadcrumbNameMap: Record<string, string> = {
 
 export default function Header() {
   const location = useLocation();
-  const { notificaciones } = useAppContext();
   const { user, logout } = useAuth();
   const { collapsed, toggle } = useSidebar();
+  const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [passwordModalVisible, setPasswordModalVisible] = useState(false);
+  const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
   const screens = Grid.useBreakpoint();
 
   // En pantallas pequeñas (md = 768px), el sidebar es overlay, no empuja el header
@@ -47,6 +53,29 @@ export default function Header() {
   const handleMenuClick = async (key: string) => {
     if (key === 'logout') {
       await logout();
+    } else if (key === 'profile') {
+      setProfileModalVisible(true);
+    } else if (key === 'password') {
+      setPasswordModalVisible(true);
+    }
+  };
+
+  const handlePasswordChange = async (values: any) => {
+    if (values.new_password !== values.confirm_password) {
+      message.error('Las contraseñas nuevas no coinciden');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await authService.changePassword(values.current_password, values.new_password);
+      message.success('Contraseña actualizada correctamente');
+      setPasswordModalVisible(false);
+      form.resetFields();
+    } catch (error: any) {
+      message.error(error.response?.data?.detail || 'Error al cambiar contraseña');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -57,9 +86,9 @@ export default function Header() {
       label: 'Perfil',
     },
     {
-      key: 'settings',
-      icon: <SettingOutlined />,
-      label: 'Configuración',
+      key: 'password',
+      icon: <LockOutlined />,
+      label: 'Cambiar contraseña',
     },
     {
       type: 'divider' as const,
@@ -108,9 +137,6 @@ export default function Header() {
       </div>
 
       <Space size={16}>
-        <Badge count={notificaciones} size="small">
-          <BellOutlined style={{ fontSize: 18, cursor: 'pointer' }} />
-        </Badge>
         <Dropdown 
           menu={{ items: userMenuItems, onClick: ({ key }) => handleMenuClick(key) }} 
           placement="bottomRight"
@@ -124,6 +150,107 @@ export default function Header() {
           </Space>
         </Dropdown>
       </Space>
+
+      {/* Modal de Perfil */}
+      <Modal
+        title="Información del Perfil"
+        open={profileModalVisible}
+        onCancel={() => setProfileModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setProfileModalVisible(false)}>
+            Cerrar
+          </Button>,
+          <Button 
+            key="password" 
+            type="primary" 
+            icon={<LockOutlined />}
+            onClick={() => {
+              setProfileModalVisible(false);
+              setPasswordModalVisible(true);
+            }}
+          >
+            Cambiar Contraseña
+          </Button>
+        ]}
+      >
+        <div style={{ padding: '16px 0' }}>
+          <div style={{ textAlign: 'center', marginBottom: 24 }}>
+            <Avatar size={64} icon={<UserOutlined />} style={{ backgroundColor: '#1677ff' }} />
+            <Title level={4} style={{ marginTop: 12, marginBottom: 0 }}>{user?.nombre}</Title>
+            <Tag color={user?.rol === 'admin' ? 'blue' : 'green'} style={{ marginTop: 8 }}>
+              {user?.rol === 'admin' ? 'Administrador' : 'Trabajador'}
+            </Tag>
+          </div>
+          
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+              <Text type="secondary">DNI:</Text>
+              <Text strong>{user?.dni}</Text>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+              <Text type="secondary">Celular:</Text>
+              <Text strong>{user?.celular || '-'}</Text>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
+              <Text type="secondary">Estado:</Text>
+              <Tag color={user?.is_active ? 'success' : 'error'}>
+                {user?.is_active ? 'Activo' : 'Inactivo'}
+              </Tag>
+            </div>
+          </Space>
+        </div>
+      </Modal>
+
+      {/* Modal de Cambiar Contraseña */}
+      <Modal
+        title="Cambiar contraseña"
+        open={passwordModalVisible}
+        onOk={() => form.submit()}
+        onCancel={() => {
+          setPasswordModalVisible(false);
+          form.resetFields();
+        }}
+        confirmLoading={submitting}
+        okText="Actualizar"
+        cancelText="Cancelar"
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handlePasswordChange}
+          style={{ marginTop: 16 }}
+        >
+          <Form.Item
+            name="current_password"
+            label="Contraseña actual"
+            rules={[{ required: true, message: 'Por favor ingresa tu contraseña actual' }]}
+          >
+            <Input.Password />
+          </Form.Item>
+          
+          <Form.Item
+            name="new_password"
+            label="Nueva contraseña"
+            rules={[
+              { required: true, message: 'Por favor ingresa la nueva contraseña' },
+              { min: 6, message: 'La contraseña debe tener al menos 6 caracteres' }
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+          
+          <Form.Item
+            name="confirm_password"
+            label="Confirmar nueva contraseña"
+            rules={[
+              { required: true, message: 'Por favor confirma la nueva contraseña' },
+              { min: 6, message: 'La contraseña debe tener al menos 6 caracteres' }
+            ]}
+          >
+            <Input.Password />
+          </Form.Item>
+        </Form>
+      </Modal>
     </AntHeader>
   );
 }

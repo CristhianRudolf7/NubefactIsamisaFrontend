@@ -69,4 +69,9 @@ export const guiasService = {
     });
     return response.data;
   },
+
+  async enviarMasivo(ids: string[], usuario: string): Promise<ResponseBase> {
+    const response = await api.post('/guias/bulk-enviar', { ids, usuario });
+    return response.data;
+  },
 };

@@ -25,6 +25,7 @@ import GuiasDetail from './pages/Guias/GuiasDetail';
 import GuiasEdit from './pages/Guias/GuiasEdit';
 import UsersList from './pages/Users/UsersList';
 import AuditoriaList from './pages/Auditoria/AuditoriaList';
+import Configuracion from './pages/Configuracion/Configuracion';
 import NotFound from './pages/NotFound';
 
 import './styles/global.css';
@@ -77,6 +78,7 @@ function App() {
                     {/* Rutas solo para admin */}
                     <Route path="/usuarios" element={<AdminRoute><UsersList /></AdminRoute>} />
                     <Route path="/auditoria" element={<AdminRoute><AuditoriaList /></AdminRoute>} />
+                    <Route path="/configuracion" element={<AdminRoute><Configuracion /></AdminRoute>} />
                     {/* Ruta para páginas no encontradas */}
                     <Route path="*" element={<NotFound />} />
                   </Route>

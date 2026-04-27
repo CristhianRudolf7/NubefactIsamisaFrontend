@@ -39,4 +39,9 @@ export const ventasService = {
     });
     return response.data;
   },
+
+  async enviarMasivo(ids: string[], usuario: string): Promise<ResponseBase> {
+    const response = await api.post('/ventas/bulk-enviar', { ids, usuario });
+    return response.data;
+  },
 };

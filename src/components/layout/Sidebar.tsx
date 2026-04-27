@@ -6,6 +6,7 @@ import {
   CarOutlined,
   TeamOutlined,
   AuditOutlined,
+  SendOutlined,
 } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '../../hooks/useSidebar';
@@ -66,6 +67,13 @@ export default function Sidebar() {
       icon: <AuditOutlined />,
       label: 'Auditoría',
       title: 'Auditoría',
+    }] : []),
+    // Solo admin puede ver el menú de envío
+    ...(user?.rol === 'admin' ? [{
+      key: '/configuracion',
+      icon: <SendOutlined />,
+      label: 'Envío',
+      title: 'Envío',
     }] : []),
   ];
 

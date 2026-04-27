@@ -1,5 +1,5 @@
 import api from './api';
-import type { LoginResponse, User, UserRole } from '../types/auth';
+import type { LoginResponse, User } from '../types/auth';
 
 const authService = {
   /**
@@ -23,11 +23,8 @@ const authService = {
    * Obtener usuario actual desde el token en la cookie
    */
   async getCurrentUser(): Promise<User> {
-    const response = await api.get<{ id: number; dni: string; nombre: string; rol: string; is_active: boolean }>('/auth/me');
-    return {
-      ...response.data,
-      rol: response.data.rol as UserRole,
-    };
+    const response = await api.get<User>('/auth/me');
+    return response.data;
   },
 
   /**
@@ -35,6 +32,16 @@ const authService = {
    */
   async refreshToken(): Promise<void> {
     await api.post('/auth/refresh');
+  },
+
+  /**
+   * Cambiar contraseña
+   */
+  async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+    await api.post('/auth/change-password', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
   },
 };
 
