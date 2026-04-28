@@ -89,7 +89,10 @@ const DocumentConfigPanel = ({
 
     setLoading(true);
     try {
-      const ids = filteredDocs.map((d: any) => tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id));
+      const ids = filteredDocs.map((d: any) => {
+        const id = tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id);
+        return String(id);
+      });
       let service: any;
       if (tipo === 'ventas') service = ventasService;
       else if (tipo === 'guias') service = guiasService;
