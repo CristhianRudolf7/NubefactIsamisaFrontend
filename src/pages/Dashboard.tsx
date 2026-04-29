@@ -1,4 +1,4 @@
-import { Row, Col, Card, Statistic, Table, Typography, Space, Tag, Divider, Empty } from 'antd';
+import { Row, Col, Card, Statistic, Table, Typography, Space, Tag, Divider, Empty, Alert, Badge } from 'antd';
 import {
   FileTextOutlined,
   RetweetOutlined,
@@ -6,6 +6,7 @@ import {
   BarChartOutlined,
   PieChartOutlined,
   LineChartOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useDashboardStats, useResumenPorEstado, useActividadSemanal } from '../hooks/useDashboard';
@@ -86,6 +87,22 @@ export default function Dashboard() {
         <Title level={4} style={{ margin: 0 }}>Panel de Control Integral</Title>
         <Text type="secondary">Resumen ejecutivo de operaciones electrónicas</Text>
       </div>
+      
+      {stats?.por_aprobar_total > 0 && (
+        <Alert
+          message="Solicitudes de aprobación pendientes"
+          description={`Hay ${stats.por_aprobar_total} documentos que han sido editados por trabajadores y requieren su revisión y aprobación para ser procesados.`}
+          type="info"
+          showIcon
+          icon={<ExclamationCircleOutlined />}
+          style={{ marginBottom: 24, borderRadius: 12 }}
+          action={
+            <Space direction="vertical">
+              <Text strong style={{ color: '#0958d9' }}>Revisar en las listas correspondientes</Text>
+            </Space>
+          }
+        />
+      )}
 
       {/* Cards de estadísticas con diseño premium */}
       <Row gutter={[16, 16]}>
@@ -112,6 +129,7 @@ export default function Dashboard() {
                 <Text type="warning">{stats?.ventas?.pendientes || 0} pnd.</Text>
                 <Text type="danger">{stats?.ventas?.error || 0} err.</Text>
                 <Text type="success">{stats?.ventas?.enviadas || 0} env.</Text>
+                {stats?.ventas?.por_aprobar > 0 && <Badge count={stats.ventas.por_aprobar} title="Pendientes de aprobación" style={{ backgroundColor: '#1677ff' }} />}
               </Space>
             </div>
           </Card>
@@ -138,6 +156,7 @@ export default function Dashboard() {
               <Space separator={<span style={{ borderLeft: '1px solid #f0f0f0', height: 14, margin: '0 8px' }} />}>
                 <Text type="warning">{stats?.retenciones?.pendientes || 0} pnd.</Text>
                 <Text type="success">{stats?.retenciones?.enviadas || 0} env.</Text>
+                {stats?.retenciones?.por_aprobar > 0 && <Badge count={stats.retenciones.por_aprobar} title="Pendientes de aprobación" style={{ backgroundColor: '#52c41a' }} />}
               </Space>
             </div>
           </Card>
@@ -164,6 +183,7 @@ export default function Dashboard() {
               <Space separator={<span style={{ borderLeft: '1px solid #f0f0f0', height: 14, margin: '0 8px' }} />}>
                 <Text type="warning">{stats?.guias?.pendientes || 0} pnd.</Text>
                 <Text type="success">{stats?.guias?.aceptadas || 0} acept.</Text>
+                {stats?.guias?.por_aprobar > 0 && <Badge count={stats.guias.por_aprobar} title="Pendientes de aprobación" style={{ backgroundColor: '#722ed1' }} />}
               </Space>
             </div>
           </Card>

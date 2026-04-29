@@ -35,6 +35,7 @@ import { ventasService } from '../../services/ventasService';
 import { guiasService } from '../../services/guiasService';
 import { retencionesService } from '../../services/retencionesService';
 import { formatSerieNumero, formatExcelDate } from '../../utils/formatters';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 
 const { Title, Text, Paragraph } = Typography;
@@ -55,11 +56,12 @@ const DocumentConfigPanel = ({
   onStopProcessing: () => void;
 }) => {
   const { message } = App.useApp();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
+  const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const [processingCount, setProcessingCount] = useState(0);
 
   // Fetch pending docs based on type
   const { data: ventas, refetch: refetchVentas } = useVentas({ estado: 'pendiente', page: 1, page_size: 100 });
@@ -79,23 +81,30 @@ const DocumentConfigPanel = ({
     return () => clearInterval(interval);
   }, [isProcessing, tipo, refetchVentas, refetchGuias, refetchRetenciones]);
 
-  // Detectar cuando termina el procesamiento
-  useEffect(() => {
-    if (!isProcessing) return;
-    const currentCount = getPendingDocs().length;
-    if (currentCount === 0 || currentCount < processingCount) {
-      onStopProcessing();
-      setProcessingCount(0);
-      message.success('Proceso de envío completado');
-    }
-  }, [ventas, guias, retenciones, isProcessing, processingCount]);
-
-  const getPendingDocs = () => {
+  const getPendingDocs = useCallback(() => {
     if (tipo === 'ventas') return ventas?.data?.items || [];
     if (tipo === 'guias') return guias?.data?.items || [];
     if (tipo === 'retenciones') return retenciones?.data?.items || [];
     return [];
-  };
+  }, [tipo, ventas, guias, retenciones]);
+
+  // Detectar cuando termina el procesamiento
+  useEffect(() => {
+    if (!isProcessing || processingIds.length === 0) return;
+    
+    const pendingDocs = getPendingDocs();
+    const currentPendingIds = pendingDocs.map((d: any) => 
+      String(tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id))
+    );
+    
+    const stillProcessing = processingIds.filter(id => currentPendingIds.includes(id));
+    
+    if (stillProcessing.length === 0) {
+      onStopProcessing();
+      setProcessingIds([]);
+      message.success('Proceso de envío completado');
+    }
+  }, [getPendingDocs, isProcessing, processingIds, tipo]);
 
   const filteredDocs = useMemo(() => {
     const docs = getPendingDocs();
@@ -108,15 +117,18 @@ const DocumentConfigPanel = ({
     const endExcel = endDate.diff(baseDate, 'day', true);
 
     return docs.filter((d: any) => {
+        // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
+        if (d.necesita_aprobacion) return false;
+        
         const excelVal = tipo === 'guias' ? d.FechaTraslado : d.DocumentDate;
         if (!excelVal) return false;
         return excelVal >= startExcel && excelVal <= endExcel;
     });
-  }, [ventas, guias, retenciones, startDate, endDate, tipo]);
+  }, [getPendingDocs, startDate, endDate, tipo]);
 
   const handleBulkSend = async () => {
     if (filteredDocs.length === 0) {
-      message.warning('No hay documentos para enviar');
+      message.warning('No hay documentos para enviar en este rango');
       return;
     }
 
@@ -133,7 +145,7 @@ const DocumentConfigPanel = ({
 
       const result = await service.enviarMasivo(ids, usuario);
       if (result.success) {
-        setProcessingCount(filteredDocs.length);
+        setProcessingIds(ids);
         onStartProcessing(filteredDocs.length);
         message.info(result.message + ' - Procesando en segundo plano...');
       } else {
@@ -219,15 +231,17 @@ const DocumentConfigPanel = ({
             title={<Space><SearchOutlined /> Envío Manual / Masivo</Space>}
             className="shadow-sm"
             extra={
-              <Button 
-                type="primary" 
-                icon={<SendOutlined />} 
-                loading={loading || isProcessing}
-                disabled={loading || isProcessing || config?.modo === 'automatico' || filteredDocs.length === 0}
-                onClick={handleBulkSend}
-              >
-                {isProcessing ? `Procesando ${processingCount} documentos...` : (loading ? 'Iniciando envío...' : `Enviar ${filteredDocs.length} seleccionados`)}
-              </Button>
+              user?.rol !== 'trabajador' && (
+                <Button 
+                  type="primary" 
+                  icon={<SendOutlined />} 
+                  loading={loading || isProcessing}
+                  disabled={loading || isProcessing || config?.modo === 'automatico' || filteredDocs.length === 0}
+                  onClick={handleBulkSend}
+                >
+                  {isProcessing ? `Procesando ${processingIds.length} documentos...` : (loading ? 'Iniciando envío...' : `Enviar ${filteredDocs.length} seleccionados`)}
+                </Button>
+              )
             }
           >
             {isProcessing && (
@@ -236,7 +250,7 @@ const DocumentConfigPanel = ({
                 showIcon
                 icon={<Spin size="small" />}
                 message="Envío en proceso"
-                description={`Enviando ${processingCount} documentos a NubeFact. La tabla se actualizará automáticamente cuando termine el proceso.`}
+                description={`Enviando ${processingIds.length} documentos a NubeFact. La tabla se actualizará automáticamente cuando termine el proceso.`}
                 style={{ marginBottom: 16 }}
               />
             )}

@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { Typography, Card, App } from 'antd';
+import { Typography, Card, App, Space, Tag } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/common/DataTable';
 import FilterPanel from '../../components/common/FilterPanel';
 import StatusBadge from '../../components/common/StatusBadge';
 import ColumnSelector from '../../components/common/ColumnSelector';
-import { useGuias, useEnviarGuia } from '../../hooks/useGuias';
+import ChangesModal from '../../components/common/ChangesModal';
+import { useGuias, useEnviarGuia, useAprobarGuia, useRechazarGuia } from '../../hooks/useGuias';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
 import { guiasService } from '../../services/guiasService';
 import { useAppContext } from '../../contexts/AppContext';
@@ -21,9 +22,15 @@ export default function GuiasList() {
   const { message } = App.useApp();
   const [filters, setFilters] = useState<FilterParams>({});
   const [pagination, setPagination] = useState<PaginationParams>({ page: 1, page_size: 20 });
+  const [historyModal, setHistoryModal] = useState<{ open: boolean; record: GuiaRemision | null }>({
+    open: false,
+    record: null,
+  });
 
   const { data, isLoading, refetch } = useGuias({ ...filters, ...pagination });
   const enviarMutation = useEnviarGuia();
+  const aprobarMutation = useAprobarGuia();
+  const rechazarMutation = useRechazarGuia();
 
   const {
     columns,
@@ -63,12 +70,46 @@ export default function GuiasList() {
     }
   };
 
+  const handleAprobar = async (record: GuiaRemision) => {
+    try {
+      const result = await aprobarMutation.mutateAsync({
+        transactionId: record.Transaction,
+        usuario,
+      });
+      if (result.success) {
+        message.success('Guía aprobada correctamente');
+        refetch();
+      } else {
+        message.error(result.message || 'Error al aprobar');
+      }
+    } catch {
+      message.error('Error al aprobar guía');
+    }
+  };
+
+  const handleRechazar = async (record: GuiaRemision) => {
+    try {
+      const result = await rechazarMutation.mutateAsync({
+        transactionId: record.Transaction,
+      });
+      if (result.success) {
+        message.success('Cambios eliminados y versión anterior restaurada');
+        refetch();
+      } else {
+        message.error(result.message || 'Error al eliminar cambios');
+      }
+    } catch {
+      message.error('Error al eliminar cambios');
+    }
+  };
+
   const canEdit = (record: Record<string, unknown>) => {
     const estado = ((record.envio_nube as string) || '').toLowerCase();
     return ['rechazado', 'error', 'aceptado_observaciones'].includes(estado);
   };
 
   const canSend = (record: Record<string, unknown>) => {
+    if (record.necesita_aprobacion) return false;
     const estado = ((record.envio_nube as string) || '').toLowerCase();
     return !estado || ['pendiente', 'error'].includes(estado) || canEdit(record);
   };
@@ -108,7 +149,12 @@ export default function GuiasList() {
       fechaTraslado: formatExcelDate(g.TransactionDate),
       destinatario: `${g.TargetPersonRUC} - ${g.TargetPersonName}`,
       pesoBruto: `${g.PesoBruto} kg`,
-      estado: <StatusBadge estado={g.envio_nube} />,
+      estado: (
+        <Space direction="vertical" size={0}>
+          <StatusBadge estado={g.envio_nube} />
+          {g.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
+        </Space>
+      ),
       transportista: g.Transportista,
     }));
   }, [guias]);
@@ -142,11 +188,12 @@ export default function GuiasList() {
           rowKey="key"
           onView={(record) => navigate(`/guias/${record.Transaction}`)}
           onEdit={(record) => navigate(`/guias/${record.Transaction}/editar`)}
-          onSend={handleEnviar}
+          onSend={(record) => handleEnviar(record as any)}
+          onApprove={(record) => handleAprobar(record as any)}
           canEdit={canEdit}
           canSend={canSend}
           getEstado={(record) => record.envio_nube as string}
-          getError={(record) => record.error_mensaje}
+          getError={(record) => record.error_mensaje as string}
           onDownloadPdf={handleDownloadPdf}
           onDownloadXml={handleDownloadXml}
           onDownloadCdr={handleDownloadCdr}
@@ -156,8 +203,27 @@ export default function GuiasList() {
             total,
             onChange: (page, pageSize) => setPagination({ page, page_size: pageSize }),
           }}
+          onViewHistory={(record) => setHistoryModal({ open: true, record: record as any })}
         />
       </Card>
+
+      {historyModal.record && (
+        <ChangesModal
+          open={historyModal.open}
+          onClose={() => setHistoryModal({ open: false, record: null })}
+          tabla="WH_Transaction"
+          registroId={historyModal.record.Transaction}
+          showApprove={historyModal.record.necesita_aprobacion}
+          onApprove={() => {
+            handleAprobar(historyModal.record!);
+            setHistoryModal({ open: false, record: null });
+          }}
+          onReject={() => {
+            handleRechazar(historyModal.record!);
+            setHistoryModal({ open: false, record: null });
+          }}
+        />
+      )}
     </div>
   );
 }

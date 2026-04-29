@@ -57,3 +57,31 @@ export function useAnularVenta() {
     },
   });
 }
+
+export function useAprobarVenta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId, usuario }: { documentId: string; usuario: string }) =>
+      ventasService.aprobar(documentId, usuario),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      queryClient.invalidateQueries({ queryKey: ['venta', variables.documentId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useRechazarVenta() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ documentId }: { documentId: string }) =>
+      ventasService.rechazar(documentId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['ventas'] });
+      queryClient.invalidateQueries({ queryKey: ['venta', variables.documentId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}

@@ -4,6 +4,7 @@ import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, DatePi
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useRetencion, useActualizarRetencion, useEnviarRetencion } from '../../hooks/useRetenciones';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 
 interface RetencionDetalle {
@@ -26,6 +27,7 @@ interface RetencionDetalle {
 export default function RetencionesEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
   const [form] = Form.useForm();
@@ -354,13 +356,15 @@ export default function RetencionesEdit() {
             >
               Guardar
             </Button>
-            <Button
-              icon={<SendOutlined />}
-              onClick={() => form.validateFields().then((values) => handleSaveAndSend(values))}
-              loading={enviarMutation.isPending}
-            >
-              Guardar y Enviar
-            </Button>
+            {user?.rol !== 'trabajador' && (
+              <Button
+                icon={<SendOutlined />}
+                onClick={() => form.validateFields().then((values) => handleSaveAndSend(values))}
+                loading={enviarMutation.isPending}
+              >
+                Guardar y Enviar
+              </Button>
+            )}
             {(cabecera.error_mensaje || cabecera.status === 'error') && (
               <Button
                 icon={<ExclamationCircleOutlined />}

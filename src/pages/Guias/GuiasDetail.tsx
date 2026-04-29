@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
 import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
 import { useGuia, useEnviarGuia, useAnularGuia } from '../../hooks/useGuias';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -11,6 +12,7 @@ import { guiasService } from '../../services/guiasService';
 export default function GuiasDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
   const { data, isLoading } = useGuia(id!);
@@ -32,7 +34,7 @@ export default function GuiasDetail() {
   const { cabecera, detalles } = documento;
 
   const canEdit = ['rechazado', 'error'].includes((cabecera.envio_nube || '').toLowerCase());
-  const canSend = !cabecera.envio_nube || canEdit;
+  const canSend = (!cabecera.envio_nube || canEdit) && user?.rol !== 'trabajador';
   const canDownload = cabecera.envio_nube && !['pendiente', 'error', 'rechazado'].includes((cabecera.envio_nube || '').toLowerCase());
   // Mostrar anular solo si está rechazado o pendiente
   const canAnular = ['rechazado', 'pendiente'].includes((cabecera.envio_nube || '').toLowerCase());

@@ -44,4 +44,16 @@ export const ventasService = {
     const response = await api.post('/ventas/bulk-enviar', { ids, usuario });
     return response.data;
   },
+
+  async aprobar(documentId: string, usuario: string): Promise<ResponseBase> {
+    const response = await api.post(`/ventas/${documentId}/aprobar`, null, {
+      params: { usuario },
+    });
+    return response.data;
+  },
+  
+  async rechazar(documentId: string): Promise<ResponseBase> {
+    const response = await api.post(`/ventas/${documentId}/rechazar`);
+    return response.data;
+  },
 };

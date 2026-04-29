@@ -44,4 +44,16 @@ export const retencionesService = {
     const response = await api.post('/retenciones/bulk-enviar', { ids, usuario });
     return response.data;
   },
+
+  async aprobar(retencionId: number, usuario: string): Promise<ResponseBase> {
+    const response = await api.post(`/retenciones/${retencionId}/aprobar`, null, {
+      params: { usuario },
+    });
+    return response.data;
+  },
+  
+  async rechazar(retencionId: number): Promise<ResponseBase> {
+    const response = await api.post(`/retenciones/${retencionId}/rechazar`);
+    return response.data;
+  },
 };

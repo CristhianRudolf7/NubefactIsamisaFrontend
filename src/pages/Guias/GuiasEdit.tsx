@@ -3,11 +3,13 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Modal, Divider } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import { useGuia, useActualizarGuia, useEnviarGuia } from '../../hooks/useGuias';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 
 export default function GuiasEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
   const [form] = Form.useForm();
@@ -207,13 +209,15 @@ export default function GuiasEdit() {
             >
               Guardar
             </Button>
-            <Button
-              icon={<SendOutlined />}
-              onClick={() => form.validateFields().then((values) => handleSaveAndSend(values))}
-              loading={enviarMutation.isPending}
-            >
-              Guardar y Enviar
-            </Button>
+            {user?.rol !== 'trabajador' && (
+              <Button
+                icon={<SendOutlined />}
+                onClick={() => form.validateFields().then((values) => handleSaveAndSend(values))}
+                loading={enviarMutation.isPending}
+              >
+                Guardar y Enviar
+              </Button>
+            )}
             {(cabecera.error_mensaje || cabecera.Status === 'error') && (
               <Button
                 icon={<ExclamationCircleOutlined />}

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
 import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
 import { useVenta, useEnviarVenta, useAnularVenta } from '../../hooks/useVentas';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate, formatCurrency } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -10,6 +11,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 export default function VentasDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
   const { data, isLoading } = useVenta(id!);
@@ -33,7 +35,7 @@ export default function VentasDetail() {
   const canEdit = ['rechazado', 'error', 'aceptado_observaciones'].includes(
     (cabecera.fe || '').toLowerCase()
   );
-  const canSend = !cabecera.fe || canEdit;
+  const canSend = (!cabecera.fe || canEdit) && user?.rol !== 'trabajador';
   const canDownload = cabecera.fe && !['pendiente', 'error', 'rechazado'].includes((cabecera.fe || '').toLowerCase());
   // Mostrar anular solo si está rechazado o pendiente
   const canAnular = ['rechazado', 'pendiente'].includes((cabecera.fe || '').toLowerCase());

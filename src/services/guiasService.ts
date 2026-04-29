@@ -74,4 +74,16 @@ export const guiasService = {
     const response = await api.post('/guias/bulk-enviar', { ids, usuario });
     return response.data;
   },
+
+  async aprobar(transactionId: string, usuario: string): Promise<ResponseBase> {
+    const response = await api.post(`/guias/${transactionId}/aprobar`, null, {
+      params: { usuario },
+    });
+    return response.data;
+  },
+  
+  async rechazar(transactionId: string): Promise<ResponseBase> {
+    const response = await api.post(`/guias/${transactionId}/rechazar`);
+    return response.data;
+  },
 };

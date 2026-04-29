@@ -11,6 +11,7 @@ const auditoriaService = {
     
     if (filtros?.tabla) params.append('tabla', filtros.tabla);
     if (filtros?.accion) params.append('accion', filtros.accion);
+    if (filtros?.registro_id) params.append('registro_id', filtros.registro_id);
     if (filtros?.usuario) params.append('usuario', filtros.usuario);
     if (filtros?.fecha_inicio) params.append('fecha_inicio', filtros.fecha_inicio);
     if (filtros?.fecha_fin) params.append('fecha_fin', filtros.fecha_fin);

@@ -1,6 +1,7 @@
 import { Table, Button, Tooltip, Popconfirm, Modal, App, Dropdown } from 'antd';
-import { EditOutlined, SendOutlined, EyeOutlined, FilePdfOutlined, ExclamationCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined, FileZipOutlined, DownOutlined } from '@ant-design/icons';
+import { EditOutlined, SendOutlined, EyeOutlined, FilePdfOutlined, ExclamationCircleOutlined, CopyOutlined, DownloadOutlined, FileTextOutlined, FileZipOutlined, DownOutlined, HistoryOutlined } from '@ant-design/icons';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import type { TableProps, TableColumnsType } from 'antd';
 import type { ColumnConfig } from '../../types';
 
@@ -12,10 +13,12 @@ interface DataTableProps<T> {
   onRowClick?: (record: T) => void;
   onEdit?: (record: T) => void;
   onSend?: (record: T) => void;
+  onApprove?: (record: T) => void;
   onView?: (record: T) => void;
   onDownloadPdf?: (record: T) => void;
   onDownloadXml?: (record: T) => void;
   onDownloadCdr?: (record: T) => void;
+  onViewHistory?: (record: T) => void;
   pagination?: {
     current: number;
     pageSize: number;
@@ -40,15 +43,17 @@ export default function DataTable<T extends Record<string, unknown>>({
   onDownloadPdf,
   onDownloadXml,
   onDownloadCdr,
+  onViewHistory,
   pagination,
   canEdit,
   canSend,
   getEstado,
   getError,
 }: DataTableProps<T>) {
+  const { user } = useAuth();
   const { message } = App.useApp();
   const [errorModalVisible, setErrorModalVisible] = useState(false);
-  const [currentError, setCurrentError] = useState<string>('');
+  const [currentError, setCurrentError] = useState('');
 
   const handleCopyError = () => {
     navigator.clipboard.writeText(currentError);
@@ -66,6 +71,7 @@ export default function DataTable<T extends Record<string, unknown>>({
             const estado = getEstado?.(record) || '';
             const showEdit = canEdit?.(record) ?? false;
             const showSend = canSend?.(record) ?? false;
+            const needsApproval = record.necesita_aprobacion === true;
 
             const errorMsg = getError?.(record);
             const estadoLower = estado.toLowerCase();
@@ -89,6 +95,16 @@ export default function DataTable<T extends Record<string, unknown>>({
                       />
                     </Tooltip>
                   </Popconfirm>
+                )}
+                {needsApproval && user?.rol === 'admin' && (
+                  <Tooltip title="Ver cambios realizados">
+                    <Button
+                      size="small"
+                      icon={<HistoryOutlined />}
+                      onClick={() => onViewHistory?.(record)}
+                      style={{ color: '#1890ff' }}
+                    />
+                  </Tooltip>
                 )}
                 {showEdit && (
                   <Tooltip title="Editar">

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
 import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
 import { useRetencion, useEnviarRetencion, useAnularRetencion } from '../../hooks/useRetenciones';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate, formatCurrency } from '../../utils/formatters';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -10,6 +11,7 @@ import StatusBadge from '../../components/common/StatusBadge';
 export default function RetencionesDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
   const { data, isLoading } = useRetencion(Number(id));
@@ -31,7 +33,7 @@ export default function RetencionesDetail() {
   const { cabecera, detalles, estado_sunat } = documento;
 
   const canEdit = ['rechazado', 'error'].includes((cabecera.status || '').toLowerCase());
-  const canSend = !cabecera.status || canEdit;
+  const canSend = (!cabecera.status || canEdit) && user?.rol !== 'trabajador';
   const canDownload = cabecera.status && !['pendiente', 'error', 'rechazado'].includes((cabecera.status || '').toLowerCase());
   // Mostrar anular solo si está rechazado o pendiente
   const canAnular = ['rechazado', 'pendiente'].includes((cabecera.status || '').toLowerCase());

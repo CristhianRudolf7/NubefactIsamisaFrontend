@@ -57,3 +57,31 @@ export function useAnularRetencion() {
     },
   });
 }
+
+export function useAprobarRetencion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ retencionId, usuario }: { retencionId: number; usuario: string }) =>
+      retencionesService.aprobar(retencionId, usuario),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['retenciones'] });
+      queryClient.invalidateQueries({ queryKey: ['retencion', variables.retencionId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useRechazarRetencion() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ retencionId }: { retencionId: number }) =>
+      retencionesService.rechazar(retencionId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['retenciones'] });
+      queryClient.invalidateQueries({ queryKey: ['retencion', variables.retencionId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}

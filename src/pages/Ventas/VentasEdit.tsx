@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Form, Input, Button, Space, Spin, Alert, InputNumber, App, Table, Divider, Modal, Select } from 'antd';
 import { ArrowLeftOutlined, SaveOutlined, SendOutlined, PlusOutlined, DeleteOutlined, ExclamationCircleOutlined, CopyOutlined } from '@ant-design/icons';
 import { useVenta, useActualizarVenta, useEnviarVenta } from '../../hooks/useVentas';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 
 interface ItemDetalle {
@@ -21,6 +22,7 @@ interface ItemDetalle {
 export default function VentasEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
   const [form] = Form.useForm();
@@ -311,15 +313,17 @@ export default function VentasEdit() {
             >
               Guardar
             </Button>
-            <Button
-              icon={<SendOutlined />}
-              onClick={() => {
-                form.validateFields().then((values) => handleSaveAndSend(values));
-              }}
-              loading={enviarMutation.isPending}
-            >
-              Guardar y Enviar
-            </Button>
+            {user?.rol !== 'trabajador' && (
+              <Button
+                icon={<SendOutlined />}
+                onClick={() => {
+                  form.validateFields().then((values) => handleSaveAndSend(values));
+                }}
+                loading={enviarMutation.isPending}
+              >
+                Guardar y Enviar
+              </Button>
+            )}
             {(cabecera.error_mensaje || cabecera.Status === 'error') && (
               <Button
                 icon={<ExclamationCircleOutlined />}

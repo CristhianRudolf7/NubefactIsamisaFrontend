@@ -55,6 +55,7 @@ export interface DocumentoVenta {
   Status?: string;
   error_mensaje?: string;
   codigo_hash?: string;
+  necesita_aprobacion?: boolean;
 }
 
 export interface DocumentoVentaDetalle {
@@ -92,6 +93,7 @@ export interface Retencion {
   Obs?: string;
   status?: string;
   error_mensaje?: string;
+  necesita_aprobacion?: boolean;
 }
 
 export interface RetencionDetalle {
@@ -146,6 +148,7 @@ export interface GuiaRemision {
   DriverId?: string;
   SaleDocSerie?: string;
   SaleDocNo?: string;
+  necesita_aprobacion?: boolean;
 }
 
 export interface GuiaRemisionDetalle {
@@ -185,17 +188,21 @@ export interface DashboardStats {
     enviadas: number;
     pendientes: number;
     error: number;
+    por_aprobar: number;
   };
   retenciones: {
     total: number;
     enviadas: number;
     pendientes: number;
+    por_aprobar: number;
   };
   guias: {
     total: number;
     aceptadas: number;
     pendientes: number;
+    por_aprobar: number;
   };
+  por_aprobar_total: number;
 }
 
 export interface EstadoInfo {
@@ -263,6 +270,7 @@ export interface AuditoriaEstadisticas {
 export interface AuditoriaFiltros {
   tabla?: string;
   accion?: string;
+  registro_id?: string;
   usuario?: string;
   fecha_inicio?: string;
   fecha_fin?: string;

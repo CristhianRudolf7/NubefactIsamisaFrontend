@@ -70,3 +70,31 @@ export function useAnularGuia() {
     },
   });
 }
+
+export function useAprobarGuia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ transactionId, usuario }: { transactionId: string; usuario: string }) =>
+      guiasService.aprobar(transactionId, usuario),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['guias'] });
+      queryClient.invalidateQueries({ queryKey: ['guia', variables.transactionId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
+
+export function useRechazarGuia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ transactionId }: { transactionId: string }) =>
+      guiasService.rechazar(transactionId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['guias'] });
+      queryClient.invalidateQueries({ queryKey: ['guia', variables.transactionId] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+}
