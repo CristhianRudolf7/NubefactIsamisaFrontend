@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
 import { 
   Typography, 
@@ -16,7 +16,9 @@ import {
   Divider,
   Row,
   Col,
-  Empty
+  Empty,
+  Alert,
+  Spin
 } from 'antd';
 import { 
   SettingOutlined, 
@@ -40,22 +42,53 @@ const { Title, Text, Paragraph } = Typography;
 const DocumentConfigPanel = ({ 
   tipo, 
   config, 
-  onUpdate 
+  onUpdate,
+  isProcessing,
+  onStartProcessing,
+  onStopProcessing
 }: { 
   tipo: string; 
   config: any; 
-  onUpdate: (datos: any) => Promise<void> 
+  onUpdate: (datos: any) => Promise<void>;
+  isProcessing: boolean;
+  onStartProcessing: (count: number) => void;
+  onStopProcessing: () => void;
 }) => {
   const { message } = App.useApp();
   const { usuario } = useAppContext();
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
   const [loading, setLoading] = useState(false);
+  const [processingCount, setProcessingCount] = useState(0);
 
   // Fetch pending docs based on type
-  const { data: ventas } = useVentas({ estado: 'pendiente', page: 1, page_size: 100 });
-  const { data: guias } = useGuias({ estado: 'pendiente', page: 1, page_size: 100 });
-  const { data: retenciones } = useRetenciones({ estado: 'pendiente', page: 1, page_size: 100 });
+  const { data: ventas, refetch: refetchVentas } = useVentas({ estado: 'pendiente', page: 1, page_size: 100 });
+  const { data: guias, refetch: refetchGuias } = useGuias({ estado: 'pendiente', page: 1, page_size: 100 });
+  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones({ estado: 'pendiente', page: 1, page_size: 100 });
+
+  // Polling para actualizar documentos mientras se procesan
+  useEffect(() => {
+    if (!isProcessing) return;
+    
+    const interval = setInterval(() => {
+      if (tipo === 'ventas') refetchVentas();
+      else if (tipo === 'guias') refetchGuias();
+      else refetchRetenciones();
+    }, 3000);
+    
+    return () => clearInterval(interval);
+  }, [isProcessing, tipo, refetchVentas, refetchGuias, refetchRetenciones]);
+
+  // Detectar cuando termina el procesamiento
+  useEffect(() => {
+    if (!isProcessing) return;
+    const currentCount = getPendingDocs().length;
+    if (currentCount === 0 || currentCount < processingCount) {
+      onStopProcessing();
+      setProcessingCount(0);
+      message.success('Proceso de envío completado');
+    }
+  }, [ventas, guias, retenciones, isProcessing, processingCount]);
 
   const getPendingDocs = () => {
     if (tipo === 'ventas') return ventas?.data?.items || [];
@@ -100,7 +133,9 @@ const DocumentConfigPanel = ({
 
       const result = await service.enviarMasivo(ids, usuario);
       if (result.success) {
-        message.success(result.message);
+        setProcessingCount(filteredDocs.length);
+        onStartProcessing(filteredDocs.length);
+        message.info(result.message + ' - Procesando en segundo plano...');
       } else {
         message.error(result.message);
       }
@@ -187,14 +222,24 @@ const DocumentConfigPanel = ({
               <Button 
                 type="primary" 
                 icon={<SendOutlined />} 
-                loading={loading}
-                disabled={loading || config?.modo === 'automatico' || filteredDocs.length === 0}
+                loading={loading || isProcessing}
+                disabled={loading || isProcessing || config?.modo === 'automatico' || filteredDocs.length === 0}
                 onClick={handleBulkSend}
               >
-                {loading ? 'Iniciando envío...' : `Enviar ${filteredDocs.length} seleccionados`}
+                {isProcessing ? `Procesando ${processingCount} documentos...` : (loading ? 'Iniciando envío...' : `Enviar ${filteredDocs.length} seleccionados`)}
               </Button>
             }
           >
+            {isProcessing && (
+              <Alert 
+                type="info" 
+                showIcon
+                icon={<Spin size="small" />}
+                message="Envío en proceso"
+                description={`Enviando ${processingCount} documentos a NubeFact. La tabla se actualizará automáticamente cuando termine el proceso.`}
+                style={{ marginBottom: 16 }}
+              />
+            )}
             {config?.modo === 'automatico' ? (
               <Empty 
                 description="El modo automático está activo. El sistema procesará los documentos sin intervención manual." 
@@ -246,6 +291,7 @@ const DocumentConfigPanel = ({
 
 export default function Configuracion() {
   const { configs, updateConfig } = useConfig();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleUpdate = async (tipo: string, datos: any) => {
     try {
@@ -255,21 +301,50 @@ export default function Configuracion() {
     }
   };
 
+  const handleStartProcessing = (count: number) => {
+    setIsProcessing(true);
+  };
+
+  const handleStopProcessing = () => {
+    setIsProcessing(false);
+  };
+
   const items = [
     { 
       key: 'ventas', 
       label: 'Ventas (Facturas/Boletas)', 
-      children: <DocumentConfigPanel tipo="ventas" config={configs.find(c => c.tipo_documento === 'ventas')} onUpdate={(datos) => handleUpdate('ventas', datos)} /> 
+      children: <DocumentConfigPanel 
+        tipo="ventas" 
+        config={configs.find(c => c.tipo_documento === 'ventas')} 
+        onUpdate={(datos) => handleUpdate('ventas', datos)} 
+        isProcessing={isProcessing}
+        onStartProcessing={handleStartProcessing}
+        onStopProcessing={handleStopProcessing}
+      /> 
     },
     { 
       key: 'guias', 
       label: 'Guías de Remisión', 
-      children: <DocumentConfigPanel tipo="guias" config={configs.find(c => c.tipo_documento === 'guias')} onUpdate={(datos) => handleUpdate('guias', datos)} /> 
+      children: <DocumentConfigPanel 
+        tipo="guias" 
+        config={configs.find(c => c.tipo_documento === 'guias')} 
+        onUpdate={(datos) => handleUpdate('guias', datos)} 
+        isProcessing={isProcessing}
+        onStartProcessing={handleStartProcessing}
+        onStopProcessing={handleStopProcessing}
+      /> 
     },
     { 
       key: 'retenciones', 
       label: 'Retenciones', 
-      children: <DocumentConfigPanel tipo="retenciones" config={configs.find(c => c.tipo_documento === 'retenciones')} onUpdate={(datos) => handleUpdate('retenciones', datos)} /> 
+      children: <DocumentConfigPanel 
+        tipo="retenciones" 
+        config={configs.find(c => c.tipo_documento === 'retenciones')} 
+        onUpdate={(datos) => handleUpdate('retenciones', datos)} 
+        isProcessing={isProcessing}
+        onStartProcessing={handleStartProcessing}
+        onStopProcessing={handleStopProcessing}
+      /> 
     },
   ];
 
