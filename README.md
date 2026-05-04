@@ -1,88 +1,58 @@
 # Frontend - Sistema de Gestión de Documentos Electrónicos
 
-Frontend para gestión de envío de documentos a NubeFact/SUNAT y edición de documentos con errores.
+Interfaz de usuario construida con React para la gestión de envío de documentos a NubeFact/SUNAT y la edición de documentos con errores o rechazos.
 
-## Stack Tecnológico
+> [!IMPORTANT]
+> Este proyecto está dividido en dos repositorios independientes:
+> - **Frontend**: Interfaz de usuario React/Vite (Este repo).
+> - **Backend**: API construida con FastAPI.
 
-- **Framework**: Vite + React 18 + TypeScript
-- **UI Library**: Ant Design 5.x
-- **Styling**: TailwindCSS (complementario)
-- **State Management**: React Query (TanStack Query)
-- **Routing**: React Router v6
+## Requisitos Previos
 
-## Instalación
+- Node.js 18+
+- Docker (opcional para despliegue)
 
-```bash
-npm install
-```
+## Instalación y Configuración
 
-## Ejecución
-
-```bash
-npm run dev
-```
-
-El servidor de desarrollo se iniciará en `http://localhost:5173`
-
-## Build
-
-```bash
-npm run build
-```
-
-## Estructura del Proyecto
-
-```
-src/
-  components/
-    layout/           # Header, Sidebar, MainLayout
-    common/           # DataTable, FilterPanel, StatusBadge, ColumnSelector
-  pages/
-    Dashboard.tsx     # Estadísticas y resumen
-    Ventas/           # Lista, detalle y edición de ventas
-    Retenciones/      # Lista, detalle y edición de retenciones
-    Guias/            # Lista, detalle y edición de guías
-  services/           # API clients
-  hooks/              # Custom hooks con React Query
-  contexts/           # React Context
-  types/              # TypeScript types
-  utils/              # Formatters y constants
-  styles/             # CSS global
-```
-
-## Funcionalidades
-
-### Acciones por Estado
-
-| Estado | Acciones |
-|--------|----------|
-| Pendiente | Enviar a NubeFact, Ver detalle |
-| Enviado | Ver detalle, Descargar PDF/XML/CDR |
-| Aceptado | Ver detalle, Descargar PDF/XML/CDR |
-| Rechazado/Observado | Editar, Reenviar, Ver error |
-| Error | Editar, Reintentar |
-
-### Columnas Personalizables
-
-Las tablas permiten seleccionar qué columnas mostrar:
-- Botón de configuración en la esquina superior derecha
-- Persistencia en localStorage
-- Opción de restaurar configuración por defecto
-
-### Diseño Responsivo
-
-- **Desktop (>1024px)**: Sidebar expandido (240px)
-- **Tablet (768-1024px)**: Sidebar colapsado (80px)
-- **Mobile (<768px)**: Sidebar oculto (drawer)
-
-## Variables de Entorno
+### 1. Variables de Entorno
+Cree un archivo `.env` en la raíz del frontend (o configure las variables en su entorno de despliegue):
 
 ```env
 VITE_API_URL=http://localhost:8000/api
 ```
 
-## Notas
+### 2. Ejecución Local (Desarrollo)
+```bash
+npm install
+npm run dev
+```
+El servidor de desarrollo se iniciará en `http://localhost:5173`
 
-- Este sistema **NO crea documentos**, solo los visualiza y gestiona
-- La creación de documentos se realiza en otro sistema
-- Solo se pueden editar documentos rechazados o con observaciones
+### 3. Ejecución con Docker (Producción)
+Este proyecto cuenta con un `Dockerfile` que realiza una construcción multi-etapa y sirve la aplicación optimizada mediante **Nginx**.
+
+```bash
+# Construir y levantar todo con docker-compose (desde la raíz del proyecto)
+docker-compose up --build -d
+```
+
+## Stack Tecnológico
+
+- **Framework**: Vite + React 18 + TypeScript
+- **UI Library**: Ant Design 5.x
+- **Styling**: TailwindCSS
+- **State Management**: React Query (TanStack Query)
+- **Routing**: React Router v7
+
+## Estructura del Proyecto
+
+- `src/components/`: Componentes reutilizables (Tablas, Filtros, Layout).
+- `src/pages/`: Páginas principales (Ventas, Guías, Retenciones, Dashboard).
+- `src/services/`: Clientes de API para comunicación con el backend.
+- `src/hooks/`: Hooks personalizados para lógica de negocio y consultas.
+
+## Notas de Integración
+
+- El frontend se comunica con el backend mediante la URL definida en `VITE_API_URL`.
+- Asegúrese de que el backend esté corriendo y sea accesible desde el navegador del cliente.
+- En entornos de producción con Docker, Nginx está configurado para manejar correctamente el enrutamiento de SPA.
