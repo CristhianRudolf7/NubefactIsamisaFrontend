@@ -97,7 +97,7 @@ export default function Dashboard() {
           icon={<ExclamationCircleOutlined />}
           style={{ marginBottom: 24, borderRadius: 12 }}
           action={
-            <Space direction="vertical">
+            <Space orientation="vertical">
               <Text strong style={{ color: '#0958d9' }}>Revisar en las listas correspondientes</Text>
             </Space>
           }

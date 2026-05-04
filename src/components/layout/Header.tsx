@@ -182,7 +182,7 @@ export default function Header() {
             </Tag>
           </div>
           
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Space orientation="vertical" style={{ width: '100%' }} size="middle">
             <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}>
               <Text type="secondary">DNI:</Text>
               <Text strong>{user?.dni}</Text>

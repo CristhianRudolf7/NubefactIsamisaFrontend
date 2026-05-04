@@ -201,7 +201,7 @@ const DocumentConfigPanel = ({
 
               {config?.modo === 'automatico' && (
                 <Form.Item>
-                  <Space direction="vertical" style={{ width: '100%' }}>
+                  <Space orientation="vertical" style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text>Activar procesador automático</Text>
                       <Switch 
@@ -260,7 +260,7 @@ const DocumentConfigPanel = ({
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
               />
             ) : (
-              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+              <Space orientation="vertical" style={{ width: '100%' }} size="middle">
                 <div>
                   <Text strong>Filtrar por rango de fechas:</Text>
                     <div style={{ marginTop: 8 }}>

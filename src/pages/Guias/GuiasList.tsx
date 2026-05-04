@@ -150,7 +150,7 @@ export default function GuiasList() {
       destinatario: `${g.TargetPersonRUC} - ${g.TargetPersonName}`,
       pesoBruto: `${g.PesoBruto} kg`,
       estado: (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <StatusBadge estado={g.envio_nube} />
           {g.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
         </Space>

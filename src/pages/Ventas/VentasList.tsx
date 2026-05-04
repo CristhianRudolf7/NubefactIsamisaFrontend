@@ -138,7 +138,7 @@ export default function VentasList() {
       cliente: `${v.VendorRUC} - ${v.VendorName}`,
       monto: formatCurrency(v.AmountTotalLo, v.DocumentCurrency === 'LO' ? 'S/' : '$'),
       estado: (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <StatusBadge estado={v.fe} />
           {v.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
         </Space>

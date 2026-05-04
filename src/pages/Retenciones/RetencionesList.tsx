@@ -139,7 +139,7 @@ export default function RetencionesList() {
       totalRetenido: formatCurrency(r.TotalRetenido),
       totalPagado: formatCurrency(r.TotalPagado),
       estado: (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <StatusBadge estado={r.status} />
           {r.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
         </Space>
