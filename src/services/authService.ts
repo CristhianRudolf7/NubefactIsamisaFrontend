@@ -7,6 +7,7 @@ const authService = {
    * El backend establece las cookies HTTP-only automáticamente
    */
   async login(dni: string, password: string): Promise<LoginResponse> {
+    console.log('Intentando login para DNI:', dni);
     const response = await api.post<LoginResponse>('/auth/login', { dni, password });
     return response.data;
   },

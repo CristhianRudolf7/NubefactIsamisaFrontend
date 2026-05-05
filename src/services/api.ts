@@ -11,6 +11,16 @@ const api = axios.create({
   withCredentials: true, // Importante para enviar cookies HTTP-only
 });
 
+// Log para depuración en producción
+console.log('API Base URL configurada:', API_BASE_URL);
+
+// Interceptor de peticiones para ver a dónde van
+api.interceptors.request.use((config) => {
+  console.log(`🚀 Realizando petición a: ${config.baseURL}${config.url}`);
+  return config;
+});
+
+
 // Variable para evitar múltiples refresh simultáneos
 let isRefreshing = false;
 let failedQueue: Array<{
