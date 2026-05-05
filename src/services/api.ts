@@ -14,9 +14,16 @@ const api = axios.create({
 // Log para depuración en producción
 console.log('API Base URL configurada:', API_BASE_URL);
 
-// Interceptor de peticiones para ver a dónde van
+// Interceptor de peticiones para ver a dónde van y añadir Token
 api.interceptors.request.use((config) => {
   console.log(`🚀 Realizando petición a: ${config.baseURL}${config.url}`);
+  
+  // Obtener token de localStorage
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  
   return config;
 });
 
@@ -65,6 +72,8 @@ api.interceptors.response.use(
       if (originalRequest._retry) {
         // Limpiar cola y redirigir
         processQueue(error);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         window.location.href = '/login';
         return Promise.reject(error);
       }
@@ -73,17 +82,28 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Intentar refrescar el token
-        await api.post('/auth/refresh');
+        // Intentar refrescar el token usando el refresh_token de localStorage
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (!refreshToken) throw new Error('No refresh token');
+
+        const response = await api.post('/auth/refresh', { refresh_token: refreshToken });
+        
+        // Guardar nuevos tokens
+        const { access_token, refresh_token: newRefreshToken } = response.data;
+        localStorage.setItem('access_token', access_token);
+        localStorage.setItem('refresh_token', newRefreshToken);
 
         // Token refrescado exitosamente, reintentar peticiones en cola
         processQueue(null);
 
-        // Reintentar la petición original
+        // Reintentar la petición original con el nuevo token
+        originalRequest.headers.Authorization = `Bearer ${access_token}`;
         return api(originalRequest);
       } catch (refreshError) {
         // Error al refrescar, redirigir a login
         processQueue(refreshError as AxiosError);
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
