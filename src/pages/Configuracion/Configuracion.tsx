@@ -293,6 +293,7 @@ const DocumentConfigPanel = ({
                   columns={columns} 
                   rowKey={(record: any) => record.Document || record.Transaction || record.Id}
                   pagination={{ pageSize: 5 }}
+                  scroll={{ x: 'max-content' }}
                 />
               </Space>
             )}

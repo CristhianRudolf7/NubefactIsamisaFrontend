@@ -16,7 +16,6 @@ console.log('API Base URL configurada:', API_BASE_URL);
 
 // Interceptor de peticiones para ver a dónde van y añadir Token
 api.interceptors.request.use((config) => {
-  console.log(`🚀 Realizando petición a: ${config.baseURL}${config.url}`);
   
   // Obtener token de localStorage
   const token = localStorage.getItem('access_token');
