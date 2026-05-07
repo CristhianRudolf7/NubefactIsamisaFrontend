@@ -1,8 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import axios from 'axios';
+import api from '../services/api';
 import type { ResponseBase } from '../types';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export interface ConfiguracionEnvio {
   id: number;
@@ -18,14 +16,14 @@ export function useConfig() {
   const { data: configs, isLoading } = useQuery<ResponseBase<ConfiguracionEnvio[]>>({
     queryKey: ['config_envios'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/config/envios`, { withCredentials: true });
+      const response = await api.get('/config/envios');
       return response.data;
     },
   });
 
   const updateConfigMutation = useMutation({
     mutationFn: async ({ tipo, datos }: { tipo: string; datos: Partial<ConfiguracionEnvio> }) => {
-      const response = await axios.put(`${API_URL}/config/envios/${tipo}`, datos, { withCredentials: true });
+      const response = await api.put(`/config/envios/${tipo}`, datos);
       return response.data;
     },
     onSuccess: () => {
