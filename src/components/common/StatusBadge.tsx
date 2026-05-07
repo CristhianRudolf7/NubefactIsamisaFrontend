@@ -25,7 +25,13 @@ export default function StatusBadge({ estado }: StatusBadgeProps) {
   }
 
   const estadoLower = estado.toLowerCase();
-  const label = estadoLabels[estadoLower] || estado;
+  let label = estadoLabels[estadoLower];
+  
+  if (!label) {
+    // Si no está en el mapa, es un estado desconocido o un mensaje de error largo
+    label = estado.length > 20 ? 'Error' : estado;
+  }
+
   const color = getEstadoColor(estadoLower);
 
   return (

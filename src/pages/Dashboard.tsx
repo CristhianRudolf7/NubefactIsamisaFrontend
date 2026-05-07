@@ -67,11 +67,15 @@ export default function Dashboard() {
       'anulado': '#8c8c8c',
     };
 
-    return Object.entries(statusMap).map(([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      color: COLORS[name.toLowerCase()] || '#d9d9d9'
-    }));
+    return Object.entries(statusMap).map(([name, value]) => {
+      const cleanName = name.length > 20 ? 'Error' : name;
+      const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      return {
+        name: formattedName,
+        value,
+        color: COLORS[name.toLowerCase()] || COLORS[cleanName.toLowerCase()] || '#d9d9d9'
+      };
+    });
   };
 
   const statusData = getGlobalStatusData();
@@ -239,7 +243,7 @@ export default function Dashboard() {
                       ))}
                     </Pie>
                     <RechartsTooltip />
-                    <Legend verticalAlign="bottom" height={36} />
+                    <Legend verticalAlign="bottom" wrapperStyle={{ paddingTop: 10 }} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
