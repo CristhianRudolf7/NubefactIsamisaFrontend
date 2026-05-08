@@ -129,22 +129,31 @@ export default function VentasList() {
   };
 
   const tableData = useMemo(() => {
-    return ventas.map((v) => ({
-      ...v,
-      key: v.Document,
-      tipoDocumento: v.DocumentType?.replace('LIMADSAS', '') || '-',
-      serieNumero: formatSerieNumero(v.DocumentSerie, v.DocumentNo),
-      fechaEmision: formatExcelDate(v.DocumentDate),
-      cliente: `${v.VendorRUC} - ${v.VendorName}`,
-      monto: formatCurrency(v.AmountTotalLo, v.DocumentCurrency === 'LO' ? 'S/' : '$'),
-      estado: (
-        <Space orientation="vertical" size={0}>
-          <StatusBadge estado={v.nube_status_web} />
-          {v.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
-        </Space>
-      ),
-      hash: v.codigo_hash ? `${v.codigo_hash.substring(0, 16)}...` : '-',
-    }));
+    return ventas.map((v) => {
+      // LOG DE DEPURACIÓN
+      if (v === ventas[0]) {
+        console.log('DEBUG - Primer registro recibido:', v);
+        console.log('DEBUG - DocumentDate:', v.DocumentDate);
+        console.log('DEBUG - Fecha formateada:', formatExcelDate(v.DocumentDate));
+      }
+      
+      return {
+        ...v,
+        key: v.Document,
+        tipoDocumento: v.DocumentType?.replace('LIMADSAS', '') || '-',
+        serieNumero: formatSerieNumero(v.DocumentSerie, v.DocumentNo),
+        fechaEmision: formatExcelDate(v.DocumentDate),
+        cliente: `${v.VendorRUC} - ${v.VendorName}`,
+        monto: formatCurrency(v.AmountTotalLo, v.DocumentCurrency === 'LO' ? 'S/' : '$'),
+        estado: (
+          <Space orientation="vertical" size={0}>
+            <StatusBadge estado={v.nube_status_web} />
+            {v.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
+          </Space>
+        ),
+        hash: v.codigo_hash ? `${v.codigo_hash.substring(0, 16)}...` : '-',
+      };
+    });
   }, [ventas]);
 
   return (
