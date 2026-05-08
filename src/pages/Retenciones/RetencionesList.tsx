@@ -103,13 +103,13 @@ export default function RetencionesList() {
   };
 
   const canEdit = (record: Record<string, unknown>) => {
-    const estado = ((record.status as string) || '').toLowerCase();
+    const estado = ((record.nube_status_web as string) || '').toLowerCase();
     return ['rechazado', 'error', 'aceptado_observaciones'].includes(estado);
   };
 
   const canSend = (record: Record<string, unknown>) => {
     if (record.necesita_aprobacion) return false;
-    const estado = ((record.status as string) || '').toLowerCase();
+    const estado = ((record.nube_status_web as string) || '').toLowerCase();
     return !estado || ['pendiente', 'error'].includes(estado) || canEdit(record);
   };
 
@@ -140,7 +140,7 @@ export default function RetencionesList() {
       totalPagado: formatCurrency(r.TotalPagado),
       estado: (
         <Space orientation="vertical" size={0}>
-          <StatusBadge estado={r.status} />
+          <StatusBadge estado={r.nube_status_web} />
           {r.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
         </Space>
       ),
@@ -180,7 +180,7 @@ export default function RetencionesList() {
           onApprove={(record) => handleAprobar(record as any)}
           canEdit={canEdit}
           canSend={canSend}
-          getEstado={(record) => record.status as string}
+          getEstado={(record) => record.nube_status_web as string}
           getError={(record) => record.error_mensaje as string}
           onDownloadPdf={handleDownloadPdf}
           onDownloadXml={handleDownloadXml}

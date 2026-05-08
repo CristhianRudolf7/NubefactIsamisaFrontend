@@ -103,13 +103,13 @@ export default function VentasList() {
   };
 
   const canEdit = (record: Record<string, unknown>) => {
-    const estado = ((record.fe as string) || '').toLowerCase();
+    const estado = ((record.nube_status_web as string) || '').toLowerCase();
     return ['rechazado', 'error', 'aceptado_observaciones'].includes(estado);
   };
 
   const canSend = (record: Record<string, unknown>) => {
     if (record.necesita_aprobacion) return false;
-    const estado = ((record.fe as string) || '').toLowerCase();
+    const estado = ((record.nube_status_web as string) || '').toLowerCase();
     return ['pendiente', '', undefined].includes(estado) || canEdit(record);
   };
 
@@ -139,7 +139,7 @@ export default function VentasList() {
       monto: formatCurrency(v.AmountTotalLo, v.DocumentCurrency === 'LO' ? 'S/' : '$'),
       estado: (
         <Space orientation="vertical" size={0}>
-          <StatusBadge estado={v.fe} />
+          <StatusBadge estado={v.nube_status_web} />
           {v.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
         </Space>
       ),
@@ -178,8 +178,9 @@ export default function VentasList() {
           onApprove={(record) => handleAprobar(record as any)}
           canEdit={canEdit}
           canSend={canSend}
-          getEstado={(record) => record.fe as string}
+          getEstado={(record) => record.nube_status_web as string}
           getError={(record) => record.error_mensaje as string}
+          showDownload={(record) => !!record.codigo_hash}
           onDownloadPdf={handleDownloadPdf}
           onDownloadXml={handleDownloadXml}
           onDownloadCdr={handleDownloadCdr}

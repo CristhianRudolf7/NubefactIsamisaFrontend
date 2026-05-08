@@ -52,6 +52,7 @@ export interface DocumentoVenta {
   AmountTotalLo: number;
   AmountNoImponibleLo?: number;
   fe?: string;
+  nube_status_web?: string;
   Status?: string;
   error_mensaje?: string;
   codigo_hash?: string;
@@ -92,6 +93,7 @@ export interface Retencion {
   TotalPagado: number;
   Obs?: string;
   status?: string;
+  nube_status_web?: string;
   error_mensaje?: string;
   necesita_aprobacion?: boolean;
 }
@@ -142,6 +144,7 @@ export interface GuiaRemision {
   origenaddress: string;
   ubigeo_des: string;
   envio_nube?: string;
+  nube_status_web?: string;
   Status?: string;
   Comments?: string;
   error_mensaje?: string;

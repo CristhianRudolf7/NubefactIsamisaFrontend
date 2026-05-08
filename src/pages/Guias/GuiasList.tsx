@@ -104,13 +104,13 @@ export default function GuiasList() {
   };
 
   const canEdit = (record: Record<string, unknown>) => {
-    const estado = ((record.envio_nube as string) || '').toLowerCase();
+    const estado = ((record.nube_status_web as string) || '').toLowerCase();
     return ['rechazado', 'error', 'aceptado_observaciones'].includes(estado);
   };
 
   const canSend = (record: Record<string, unknown>) => {
     if (record.necesita_aprobacion) return false;
-    const estado = ((record.envio_nube as string) || '').toLowerCase();
+    const estado = ((record.nube_status_web as string) || '').toLowerCase();
     return !estado || ['pendiente', 'error'].includes(estado) || canEdit(record);
   };
 
@@ -151,7 +151,7 @@ export default function GuiasList() {
       pesoBruto: `${g.PesoBruto} kg`,
       estado: (
         <Space orientation="vertical" size={0}>
-          <StatusBadge estado={g.envio_nube} />
+          <StatusBadge estado={g.nube_status_web} />
           {g.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
         </Space>
       ),
@@ -192,7 +192,7 @@ export default function GuiasList() {
           onApprove={(record) => handleAprobar(record as any)}
           canEdit={canEdit}
           canSend={canSend}
-          getEstado={(record) => record.envio_nube as string}
+          getEstado={(record) => record.nube_status_web as string}
           getError={(record) => record.error_mensaje as string}
           onDownloadPdf={handleDownloadPdf}
           onDownloadXml={handleDownloadXml}

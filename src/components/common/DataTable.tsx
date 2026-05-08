@@ -29,6 +29,7 @@ interface DataTableProps<T> {
   canSend?: (record: T) => boolean;
   getEstado?: (record: T) => string;
   getError?: (record: T) => string | undefined;
+  showDownload?: (record: T) => boolean;
 }
 
 export default function DataTable<T extends Record<string, unknown>>({
@@ -49,6 +50,7 @@ export default function DataTable<T extends Record<string, unknown>>({
   canSend,
   getEstado,
   getError,
+  showDownload,
 }: DataTableProps<T>) {
   const { user } = useAuth();
   const { message } = App.useApp();
@@ -135,7 +137,7 @@ export default function DataTable<T extends Record<string, unknown>>({
                     onClick={() => onView?.(record)}
                   />
                 </Tooltip>
-                {estadoLower && estadoLower !== 'pendiente' && estadoLower !== 'error' && estadoLower !== 'rechazado' && (
+                {estadoLower && estadoLower !== 'pendiente' && estadoLower !== 'error' && estadoLower !== 'rechazado' && (!showDownload || showDownload(record)) && (
                   <Dropdown
                     menu={{
                       items: [
