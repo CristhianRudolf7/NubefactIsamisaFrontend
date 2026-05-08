@@ -142,21 +142,34 @@ export default function GuiasList() {
   };
 
   const tableData = useMemo(() => {
-    return guias.map((g) => ({
-      ...g,
-      key: g.Transaction,
-      serieNumero: formatSerieNumero(g.DocumentSerie, g.DocumentNo),
-      fechaTraslado: formatExcelDate(g.TransactionDate),
-      destinatario: `${g.TargetPersonRUC} - ${g.TargetPersonName}`,
-      pesoBruto: `${g.PesoBruto} kg`,
-      estado: (
-        <Space orientation="vertical" size={0}>
-          <StatusBadge estado={g.nube_status_web} />
-          {g.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
-        </Space>
-      ),
-      transportista: g.Transportista,
-    }));
+    return guias.map((g) => {
+      const rawDate = g.TransactionDate;
+      let fechaFormateada = '-';
+      
+      if (typeof rawDate === 'number') {
+        fechaFormateada = formatExcelDate(rawDate);
+      } else if (typeof rawDate === 'string' && rawDate) {
+        const datePart = (rawDate as string).split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        fechaFormateada = `${day}-${month}-${year}`;
+      }
+
+      return {
+        ...g,
+        key: g.Transaction,
+        serieNumero: formatSerieNumero(g.DocumentSerie, g.DocumentNo),
+        fechaTraslado: fechaFormateada,
+        destinatario: `${g.TargetPersonRUC} - ${g.TargetPersonName}`,
+        pesoBruto: `${g.PesoBruto} kg`,
+        estado: (
+          <Space orientation="vertical" size={0}>
+            <StatusBadge estado={g.nube_status_web} />
+            {g.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
+          </Space>
+        ),
+        hash: g.codigo_hash ? `${g.codigo_hash.substring(0, 16)}...` : '-',
+      };
+    });
   }, [guias]);
 
   return (

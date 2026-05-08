@@ -130,19 +130,24 @@ export default function VentasList() {
 
   const tableData = useMemo(() => {
     return ventas.map((v) => {
-      // LOG DE DEPURACIÓN
-      if (v === ventas[0]) {
-        console.log('DEBUG - Primer registro recibido:', v);
-        console.log('DEBUG - DocumentDate:', v.DocumentDate);
-        console.log('DEBUG - Fecha formateada:', formatExcelDate(v.DocumentDate));
-      }
+      const rawDate = v.DocumentDate;
+      let fechaFormateada = '-';
       
+      if (typeof rawDate === 'number') {
+        fechaFormateada = formatExcelDate(rawDate);
+      } else if (typeof rawDate === 'string' && rawDate) {
+        // Si es ISO string "2025-09-24...", tomar solo la parte de la fecha
+        const datePart = rawDate.split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        fechaFormateada = `${day}-${month}-${year}`;
+      }
+
       return {
         ...v,
         key: v.Document,
         tipoDocumento: v.DocumentType?.replace('LIMADSAS', '') || '-',
         serieNumero: formatSerieNumero(v.DocumentSerie, v.DocumentNo),
-        fechaEmision: formatExcelDate(v.DocumentDate),
+        fechaEmision: fechaFormateada,
         cliente: `${v.VendorRUC} - ${v.VendorName}`,
         monto: formatCurrency(v.AmountTotalLo, v.DocumentCurrency === 'LO' ? 'S/' : '$'),
         estado: (

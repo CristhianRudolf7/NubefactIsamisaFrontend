@@ -129,22 +129,35 @@ export default function RetencionesList() {
   };
 
   const tableData = useMemo(() => {
-    return retenciones.map((r) => ({
-      ...r,
-      key: r.Id,
-      serieNumero: formatSerieNumero(r.Serie, r.Numero),
-      fechaEmision: formatExcelDate(r.DocumentDate),
-      proveedor: `${r.VendorRuc} - ${r.VendorName}`,
-      tasa: `${r.Tasa}%`,
-      totalRetenido: formatCurrency(r.TotalRetenido),
-      totalPagado: formatCurrency(r.TotalPagado),
-      estado: (
-        <Space orientation="vertical" size={0}>
-          <StatusBadge estado={r.nube_status_web} />
-          {r.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
-        </Space>
-      ),
-    }));
+    return retenciones.map((r) => {
+      const rawDate = r.DocumentDate;
+      let fechaFormateada = '-';
+      
+      if (typeof rawDate === 'number') {
+        fechaFormateada = formatExcelDate(rawDate);
+      } else if (typeof rawDate === 'string' && rawDate) {
+        const datePart = (rawDate as string).split('T')[0];
+        const [year, month, day] = datePart.split('-');
+        fechaFormateada = `${day}-${month}-${year}`;
+      }
+
+      return {
+        ...r,
+        key: r.Id,
+        serieNumero: formatSerieNumero(r.Serie, r.Numero),
+        fechaEmision: fechaFormateada,
+        proveedor: `${r.VendorRuc} - ${r.VendorName}`,
+        tasa: `${r.Tasa}%`,
+        totalRetenido: formatCurrency(r.TotalRetenido),
+        totalPagado: formatCurrency(r.TotalPagado),
+        estado: (
+          <Space orientation="vertical" size={0}>
+            <StatusBadge estado={r.nube_status_web} />
+            {r.necesita_aprobacion && <Tag color="blue" style={{ fontSize: '10px', marginTop: 4 }}>POR APROBAR</Tag>}
+          </Space>
+        ),
+      };
+    });
   }, [retenciones]);
 
   return (
