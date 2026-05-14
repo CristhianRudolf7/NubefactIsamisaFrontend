@@ -64,9 +64,9 @@ const DocumentConfigPanel = ({
   const [loading, setLoading] = useState(false);
 
   // Fetch pending docs based on type
-  const { data: ventas, refetch: refetchVentas } = useVentas({ estado: 'pendiente', page: 1, page_size: 100 });
-  const { data: guias, refetch: refetchGuias } = useGuias({ estado: 'pendiente', page: 1, page_size: 100 });
-  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones({ estado: 'pendiente', page: 1, page_size: 100 });
+  const { data: ventas, refetch: refetchVentas } = useVentas({ estado: 'pendiente', page: 1, page_size: 500 });
+  const { data: guias, refetch: refetchGuias } = useGuias({ estado: 'pendiente', page: 1, page_size: 500 });
+  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones({ estado: 'pendiente', page: 1, page_size: 500 });
 
   // Polling para actualizar documentos mientras se procesan
   useEffect(() => {
@@ -110,19 +110,24 @@ const DocumentConfigPanel = ({
     const docs = getPendingDocs();
     if (!startDate || !endDate) return docs;
     
-    // Base para coincidir con el desfase de la BD (1899-12-31)
-    const baseDate = dayjs('1899-12-31');
-    
-    const startExcel = startDate.diff(baseDate, 'day', true);
-    const endExcel = endDate.diff(baseDate, 'day', true);
-
     return docs.filter((d: any) => {
         // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
         if (d.necesita_aprobacion) return false;
         
-        const excelVal = tipo === 'guias' ? d.FechaTraslado : d.DocumentDate;
-        if (!excelVal) return false;
-        return excelVal >= startExcel && excelVal <= endExcel;
+        const rawValue = tipo === 'guias' ? d.TransactionDate : d.DocumentDate;
+        if (!rawValue) return false;
+
+        let docDate: dayjs.Dayjs;
+        if (typeof rawValue === 'number') {
+          // Base para coincidir con el desfase de la BD (1899-12-30 es el estándar de Excel)
+          docDate = dayjs('1899-12-30').add(rawValue, 'day');
+        } else {
+          docDate = dayjs(rawValue);
+        }
+        
+        // Comparar con el rango seleccionado (incluyendo hora)
+        return (docDate.isAfter(startDate) || docDate.isSame(startDate)) && 
+               (docDate.isBefore(endDate) || docDate.isSame(endDate));
     });
   }, [getPendingDocs, startDate, endDate, tipo]);
 
@@ -172,7 +177,7 @@ const DocumentConfigPanel = ({
     { 
       title: 'Fecha', 
       key: 'date', 
-      render: (record: any) => formatExcelDate(tipo === 'guias' ? record.FechaTraslado : record.DocumentDate) 
+      render: (record: any) => formatExcelDate(tipo === 'guias' ? record.TransactionDate : record.DocumentDate) 
     },
     { 
       title: 'Estado', 
