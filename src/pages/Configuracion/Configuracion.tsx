@@ -64,9 +64,17 @@ const DocumentConfigPanel = ({
   const [loading, setLoading] = useState(false);
 
   // Fetch pending docs based on type
-  const { data: ventas, refetch: refetchVentas } = useVentas({ estado: 'pendiente', page: 1, page_size: 500 });
-  const { data: guias, refetch: refetchGuias } = useGuias({ estado: 'pendiente', page: 1, page_size: 500 });
-  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones({ estado: 'pendiente', page: 1, page_size: 500 });
+  const queryParams = useMemo(() => ({
+    estado: 'pendiente',
+    page: 1,
+    page_size: 500,
+    fecha_inicio: startDate ? startDate.format('DD-MM-YYYY HH:mm') : undefined,
+    fecha_fin: endDate ? endDate.format('DD-MM-YYYY HH:mm') : undefined
+  }), [startDate, endDate]);
+
+  const { data: ventas, refetch: refetchVentas } = useVentas(queryParams);
+  const { data: guias, refetch: refetchGuias } = useGuias(queryParams);
+  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones(queryParams);
 
   // Polling para actualizar documentos mientras se procesan
   useEffect(() => {
@@ -108,28 +116,11 @@ const DocumentConfigPanel = ({
 
   const filteredDocs = useMemo(() => {
     const docs = getPendingDocs();
-    if (!startDate || !endDate) return docs;
-    
     return docs.filter((d: any) => {
         // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
-        if (d.necesita_aprobacion) return false;
-        
-        const rawValue = tipo === 'guias' ? d.TransactionDate : d.DocumentDate;
-        if (!rawValue) return false;
-
-        let docDate: dayjs.Dayjs;
-        if (typeof rawValue === 'number') {
-          // Base para coincidir con el desfase de la BD (1899-12-30 es el estándar de Excel)
-          docDate = dayjs('1899-12-30').add(rawValue, 'day');
-        } else {
-          docDate = dayjs(rawValue);
-        }
-        
-        // Comparar con el rango seleccionado (incluyendo hora)
-        return (docDate.isAfter(startDate) || docDate.isSame(startDate)) && 
-               (docDate.isBefore(endDate) || docDate.isSame(endDate));
+        return !d.necesita_aprobacion;
     });
-  }, [getPendingDocs, startDate, endDate, tipo]);
+  }, [getPendingDocs]);
 
   const handleBulkSend = async () => {
     if (filteredDocs.length === 0) {
