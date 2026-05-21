@@ -3,11 +3,12 @@ import { ventasService } from '../services/ventasService';
 import { POLLING_INTERVAL } from '../utils/constants';
 import type { FilterParams, PaginationParams } from '../types';
 
-export function useVentas(params: FilterParams & PaginationParams) {
+export function useVentas(params: FilterParams & PaginationParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['ventas', params],
     queryFn: () => ventasService.listar(params),
     refetchInterval: POLLING_INTERVAL,
+    ...options,
   });
 }
 

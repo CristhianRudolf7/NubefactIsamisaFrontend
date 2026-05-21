@@ -72,9 +72,9 @@ const DocumentConfigPanel = ({
     fecha_fin: endDate ? endDate.format('DD-MM-YYYY HH:mm') : undefined
   }), [startDate, endDate]);
 
-  const { data: ventas, refetch: refetchVentas } = useVentas(queryParams);
-  const { data: guias, refetch: refetchGuias } = useGuias(queryParams);
-  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones(queryParams);
+  const { data: ventas, refetch: refetchVentas } = useVentas(queryParams, { enabled: tipo === 'ventas' });
+  const { data: guias, refetch: refetchGuias } = useGuias(queryParams, { enabled: tipo === 'guias' });
+  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones(queryParams, { enabled: tipo === 'retenciones' });
 
   // Polling para actualizar documentos mientras se procesan
   useEffect(() => {

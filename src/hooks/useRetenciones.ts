@@ -3,11 +3,12 @@ import { retencionesService } from '../services/retencionesService';
 import { POLLING_INTERVAL } from '../utils/constants';
 import type { FilterParams, PaginationParams } from '../types';
 
-export function useRetenciones(params: FilterParams & PaginationParams) {
+export function useRetenciones(params: FilterParams & PaginationParams, options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ['retenciones', params],
     queryFn: () => retencionesService.listar(params),
     refetchInterval: POLLING_INTERVAL,
+    ...options,
   });
 }
 
