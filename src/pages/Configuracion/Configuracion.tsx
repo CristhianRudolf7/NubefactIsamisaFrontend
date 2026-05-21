@@ -46,7 +46,8 @@ const DocumentConfigPanel = ({
   onUpdate,
   isProcessing,
   onStartProcessing,
-  onStopProcessing
+  onStopProcessing,
+  active
 }: { 
   tipo: string; 
   config: any; 
@@ -54,6 +55,7 @@ const DocumentConfigPanel = ({
   isProcessing: boolean;
   onStartProcessing: (count: number) => void;
   onStopProcessing: () => void;
+  active: boolean;
 }) => {
   const { message } = App.useApp();
   const { user } = useAuth();
@@ -65,16 +67,16 @@ const DocumentConfigPanel = ({
 
   // Fetch pending docs based on type
   const queryParams = useMemo(() => ({
-    estado: 'pendiente',
+    estado: 'pendiente' as any,
     page: 1,
     page_size: 500,
     fecha_inicio: startDate ? startDate.format('DD-MM-YYYY HH:mm') : undefined,
     fecha_fin: endDate ? endDate.format('DD-MM-YYYY HH:mm') : undefined
   }), [startDate, endDate]);
 
-  const { data: ventas, refetch: refetchVentas } = useVentas(queryParams, { enabled: tipo === 'ventas' });
-  const { data: guias, refetch: refetchGuias } = useGuias(queryParams, { enabled: tipo === 'guias' });
-  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones(queryParams, { enabled: tipo === 'retenciones' });
+  const { data: ventas, refetch: refetchVentas } = useVentas(queryParams as any, { enabled: active && tipo === 'ventas' });
+  const { data: guias, refetch: refetchGuias } = useGuias(queryParams as any, { enabled: active && tipo === 'guias' });
+  const { data: retenciones, refetch: refetchRetenciones } = useRetenciones(queryParams as any, { enabled: active && tipo === 'retenciones' });
 
   // Polling para actualizar documentos mientras se procesan
   useEffect(() => {
@@ -303,6 +305,7 @@ const DocumentConfigPanel = ({
 export default function Configuracion() {
   const { configs, updateConfig } = useConfig();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState('ventas');
 
   const handleUpdate = async (tipo: string, datos: any) => {
     try {
@@ -331,6 +334,7 @@ export default function Configuracion() {
         isProcessing={isProcessing}
         onStartProcessing={handleStartProcessing}
         onStopProcessing={handleStopProcessing}
+        active={activeTab === 'ventas'}
       /> 
     },
     { 
@@ -343,6 +347,7 @@ export default function Configuracion() {
         isProcessing={isProcessing}
         onStartProcessing={handleStartProcessing}
         onStopProcessing={handleStopProcessing}
+        active={activeTab === 'guias'}
       /> 
     },
     { 
@@ -355,6 +360,7 @@ export default function Configuracion() {
         isProcessing={isProcessing}
         onStartProcessing={handleStartProcessing}
         onStopProcessing={handleStopProcessing}
+        active={activeTab === 'retenciones'}
       /> 
     },
   ];
@@ -370,7 +376,8 @@ export default function Configuracion() {
 
       <Card className="shadow-sm">
         <Tabs 
-          defaultActiveKey="ventas" 
+          activeKey={activeTab} 
+          onChange={setActiveTab}
           items={items} 
           tabPosition="top"
           size="large"
