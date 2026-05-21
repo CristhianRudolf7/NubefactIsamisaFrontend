@@ -24,14 +24,20 @@ export function nowPeru(): dayjs.Dayjs {
   return dayjs().tz('America/Lima');
 }
 
-// Convierte fecha de Excel (número) a formato legible
-export function formatExcelDate(excelDate: number | undefined | null, format: string = 'DD/MM/YYYY'): string {
+// Convierte fecha de Excel (número) o string ISO/legible a formato legible
+export function formatExcelDate(excelDate: number | string | undefined | null, format: string = 'DD/MM/YYYY'): string {
   if (!excelDate) return '-';
   
-  // Excel fecha base: 30/12/1899
-  const baseDate = dayjs('1899-12-30');
-  const date = baseDate.add(excelDate, 'day');
+  if (typeof excelDate === 'number') {
+    // Excel fecha base: 30/12/1899
+    const baseDate = dayjs('1899-12-30');
+    const date = baseDate.add(excelDate, 'day');
+    return date.format(format);
+  }
   
+  // Si ya es un string (formato ISO retornado por el backend)
+  const date = dayjs(excelDate);
+  if (!date.isValid()) return '-';
   return date.format(format);
 }
 
