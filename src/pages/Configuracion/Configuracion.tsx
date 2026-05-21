@@ -64,15 +64,22 @@ const DocumentConfigPanel = ({
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Reset page when dates change
+  useEffect(() => {
+    setPage(1);
+  }, [startDate, endDate]);
 
   // Fetch pending docs based on type
   const queryParams = useMemo(() => ({
     estado: 'pendiente' as any,
-    page: 1,
-    page_size: 500,
+    page,
+    page_size: pageSize,
     fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
     fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined
-  }), [startDate, endDate]);
+  }), [startDate, endDate, page, pageSize]);
 
   const { data: ventas, refetch: refetchVentas } = useVentas(queryParams as any, { enabled: active && tipo === 'ventas' });
   const { data: guias, refetch: refetchGuias } = useGuias(queryParams as any, { enabled: active && tipo === 'guias' });
@@ -96,6 +103,13 @@ const DocumentConfigPanel = ({
     if (tipo === 'guias') return guias?.data?.items || [];
     if (tipo === 'retenciones') return retenciones?.data?.items || [];
     return [];
+  }, [tipo, ventas, guias, retenciones]);
+
+  const total = useMemo(() => {
+    if (tipo === 'ventas') return ventas?.data?.total || 0;
+    if (tipo === 'guias') return guias?.data?.total || 0;
+    if (tipo === 'retenciones') return retenciones?.data?.total || 0;
+    return 0;
   }, [tipo, ventas, guias, retenciones]);
 
   // Detectar cuando termina el procesamiento
@@ -125,26 +139,50 @@ const DocumentConfigPanel = ({
   }, [getPendingDocs]);
 
   const handleBulkSend = async () => {
-    if (filteredDocs.length === 0) {
+    if (total === 0) {
       message.warning('No hay documentos para enviar en este rango');
       return;
     }
 
     setLoading(true);
     try {
-      const ids = filteredDocs.map((d: any) => {
-        const id = tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id);
-        return String(id);
-      });
       let service: any;
       if (tipo === 'ventas') service = ventasService;
       else if (tipo === 'guias') service = guiasService;
       else service = retencionesService;
 
+      // Obtener todos los IDs coincidentes (hasta 10000) en segundo plano para realizar el envío
+      const fetchParams = {
+        estado: 'pendiente' as any,
+        page: 1,
+        page_size: 10000,
+        fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
+        fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined
+      };
+
+      const response = await service.listar(fetchParams);
+      if (!response.success || !response.data?.items) {
+        message.error('Error al obtener la lista de documentos para enviar');
+        setLoading(false);
+        return;
+      }
+
+      const docsToSend = response.data.items.filter((d: any) => !d.necesita_aprobacion);
+      if (docsToSend.length === 0) {
+        message.warning('No hay documentos pendientes para enviar que no requieran aprobación');
+        setLoading(false);
+        return;
+      }
+
+      const ids = docsToSend.map((d: any) => {
+        const id = tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id);
+        return String(id);
+      });
+
       const result = await service.enviarMasivo(ids, usuario);
       if (result.success) {
         setProcessingIds(ids);
-        onStartProcessing(filteredDocs.length);
+        onStartProcessing(docsToSend.length);
         message.info(result.message + ' - Procesando en segundo plano...');
       } else {
         message.error(result.message);
@@ -234,10 +272,10 @@ const DocumentConfigPanel = ({
                   type="primary" 
                   icon={<SendOutlined />} 
                   loading={loading || isProcessing}
-                  disabled={loading || isProcessing || config?.modo === 'automatico' || filteredDocs.length === 0}
+                  disabled={loading || isProcessing || config?.modo === 'automatico' || total === 0}
                   onClick={handleBulkSend}
                 >
-                  {isProcessing ? `Procesando ${processingIds.length} documentos...` : (loading ? 'Iniciando envío...' : `Enviar ${filteredDocs.length} seleccionados`)}
+                  {isProcessing ? `Procesando ${processingIds.length} documentos...` : (loading ? 'Iniciando envío...' : `Enviar todos en rango (${total})`)}
                 </Button>
               )
             }
@@ -288,7 +326,17 @@ const DocumentConfigPanel = ({
                   dataSource={filteredDocs} 
                   columns={columns} 
                   rowKey={(record: any) => record.Document || record.Transaction || record.Id}
-                  pagination={{ pageSize: 5 }}
+                  pagination={{
+                    current: page,
+                    pageSize: pageSize,
+                    total: total,
+                    showSizeChanger: true,
+                    showTotal: (t, range) => `${range[0]}-${range[1]} de ${t} registros`,
+                    onChange: (p, ps) => {
+                      setPage(p);
+                      setPageSize(ps);
+                    }
+                  }}
                   scroll={{ x: 'max-content' }}
                 />
               </Space>
