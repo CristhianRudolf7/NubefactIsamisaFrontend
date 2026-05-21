@@ -70,8 +70,8 @@ const DocumentConfigPanel = ({
     estado: 'pendiente' as any,
     page: 1,
     page_size: 500,
-    fecha_inicio: startDate ? startDate.format('DD-MM-YYYY HH:mm') : undefined,
-    fecha_fin: endDate ? endDate.format('DD-MM-YYYY HH:mm') : undefined
+    fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
+    fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined
   }), [startDate, endDate]);
 
   const { data: ventas, refetch: refetchVentas } = useVentas(queryParams as any, { enabled: active && tipo === 'ventas' });
@@ -265,18 +265,16 @@ const DocumentConfigPanel = ({
                       <Row gutter={8}>
                         <Col span={12}>
                           <DatePicker 
-                            showTime={{ format: 'HH:mm' }}
-                            format="DD/MM/YYYY HH:mm"
-                            placeholder="Desde (Fecha y Hora)"
+                            format="DD/MM/YYYY"
+                            placeholder="Desde"
                             style={{ width: '100%' }} 
                             onChange={(val) => setStartDate(val)}
                           />
                         </Col>
                         <Col span={12}>
                           <DatePicker 
-                            showTime={{ format: 'HH:mm' }}
-                            format="DD/MM/YYYY HH:mm"
-                            placeholder="Hasta (Fecha y Hora)"
+                            format="DD/MM/YYYY"
+                            placeholder="Hasta"
                             style={{ width: '100%' }} 
                             onChange={(val) => setEndDate(val)}
                           />
@@ -316,6 +314,7 @@ export default function Configuracion() {
   };
 
   const handleStartProcessing = (count: number) => {
+    console.log(`Iniciando procesamiento de ${count} documentos`);
     setIsProcessing(true);
   };
 
