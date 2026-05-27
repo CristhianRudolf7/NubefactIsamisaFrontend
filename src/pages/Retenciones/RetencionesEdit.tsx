@@ -24,6 +24,15 @@ interface RetencionDetalle {
   Pagado: number;
 }
 
+const parseToDayjs = (value: number | string | undefined | null) => {
+  if (!value) return null;
+  if (typeof value === 'number') {
+    return dayjs('1899-12-30').add(value, 'day');
+  }
+  const parsed = dayjs(value);
+  return parsed.isValid() ? parsed : null;
+};
+
 export default function RetencionesEdit() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -78,10 +87,8 @@ export default function RetencionesEdit() {
 
   const { cabecera } = documento;
 
-  // Convertir fecha de Excel a dayjs si existe
-  const fechaEmision = cabecera.DocumentDate 
-    ? dayjs('1899-12-30').add(cabecera.DocumentDate, 'day')
-    : null;
+  // Convertir fecha a dayjs si existe
+  const fechaEmision = parseToDayjs(cabecera.DocumentDate);
 
   const handleSave = async (values: Record<string, unknown>) => {
     try {
@@ -254,7 +261,7 @@ export default function RetencionesEdit() {
                 dataIndex: 'DRfecha',
                 key: 'DRfecha',
                 width: 130,
-                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
+                render: (value: number | string | undefined) => parseToDayjs(value)?.format('DD-MM-YYYY') || '',
               },
               {
                 title: 'Moneda',
@@ -275,7 +282,7 @@ export default function RetencionesEdit() {
                 dataIndex: 'DRpagoFecha',
                 key: 'DRpagoFecha',
                 width: 130,
-                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
+                render: (value: number | string | undefined) => parseToDayjs(value)?.format('DD-MM-YYYY') || '',
               },
               {
                 title: 'Nro. Pago',
@@ -308,7 +315,7 @@ export default function RetencionesEdit() {
                 dataIndex: 'TipoCambioFecha',
                 key: 'TipoCambioFecha',
                 width: 130,
-                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
+                render: (value: number | string | undefined) => parseToDayjs(value)?.format('DD-MM-YYYY') || '',
               },
               {
                 title: 'Retenido',
@@ -328,7 +335,7 @@ export default function RetencionesEdit() {
                 dataIndex: 'RetenidoFecha',
                 key: 'RetenidoFecha',
                 width: 130,
-                render: (value: number | undefined) => value ? dayjs('1899-12-30').add(value, 'day').format('DD-MM-YYYY') : '',
+                render: (value: number | string | undefined) => parseToDayjs(value)?.format('DD-MM-YYYY') || '',
               },
               {
                 title: 'Pagado',
