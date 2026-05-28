@@ -128,7 +128,20 @@ const DocumentConfigPanel = ({
       setProcessingIds([]);
       message.success('Proceso de envío completado');
     }
-  }, [getPendingDocs, isProcessing, processingIds, tipo]);
+  }, [getPendingDocs, isProcessing, processingIds, tipo, onStopProcessing, message]);
+
+  // Timeout de seguridad de 2 minutos para evitar que la animación se quede congelada si algún documento falla o se omite
+  useEffect(() => {
+    if (!isProcessing || processingIds.length === 0) return;
+
+    const timeout = setTimeout(() => {
+      onStopProcessing();
+      setProcessingIds([]);
+      message.warning('El envío masivo está tardando más de lo esperado. El proceso continúa en segundo plano; actualice la página para verificar el estado final.');
+    }, 120000);
+
+    return () => clearTimeout(timeout);
+  }, [isProcessing, processingIds, onStopProcessing, message]);
 
   const filteredDocs = useMemo(() => {
     const docs = getPendingDocs();
@@ -361,14 +374,14 @@ export default function Configuracion() {
     }
   };
 
-  const handleStartProcessing = (count: number) => {
+  const handleStartProcessing = useCallback((count: number) => {
     console.log(`Iniciando procesamiento de ${count} documentos`);
     setIsProcessing(true);
-  };
+  }, []);
 
-  const handleStopProcessing = () => {
+  const handleStopProcessing = useCallback(() => {
     setIsProcessing(false);
-  };
+  }, []);
 
   const items = [
     { 
