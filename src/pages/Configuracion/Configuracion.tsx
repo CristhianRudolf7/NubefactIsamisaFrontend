@@ -99,14 +99,67 @@ const DocumentConfigPanel = ({
   useEffect(() => {
     if (!isProcessing) return;
     
-    const interval = setInterval(() => {
+    console.log(`[Bulk Send Polling] Iniciando polling para ${tipo}. IDs a procesar:`, processingIds);
+    
+    const interval = setInterval(async () => {
+      // 1. Refrescar la página actual de la tabla en pantalla
+      console.log(`[Bulk Send Polling] Refrescando tabla (Página actual: ${page})`);
       if (tipo === 'ventas') refetchVentas();
       else if (tipo === 'guias') refetchGuias();
       else refetchRetenciones();
+
+      // 2. Consulta global independiente (siempre página 1, lote grande) para vigilar el progreso
+      try {
+        let service: any;
+        if (tipo === 'ventas') service = ventasService;
+        else if (tipo === 'guias') service = guiasService;
+        else service = retencionesService;
+
+        const checkParams = {
+          estado: 'pendiente' as any,
+          page: 1,
+          page_size: 200, // lote grande independiente de la paginación de la tabla
+          fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
+          fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined,
+          serie: serie || undefined
+        };
+
+        console.log(`[Bulk Send Polling] Consultando progreso global de pendientes...`, checkParams);
+        const res = await service.listar(checkParams);
+        if (res.success && res.data?.items) {
+          const latestPendingItems = res.data.items;
+          const latestPendingIds = latestPendingItems.map((d: any) => 
+            String(tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id))
+          );
+          
+          setProcessingIds(prevIds => {
+            const stillProcessing = prevIds.filter(id => latestPendingIds.includes(id));
+            console.log(`[Bulk Send Polling] Progreso: Quedan ${stillProcessing.length} de ${prevIds.length} IDs pendientes.`);
+            
+            if (stillProcessing.length !== prevIds.length) {
+              localStorage.setItem(`bulk_processing_ids_${tipo}`, JSON.stringify(stillProcessing));
+              
+              if (stillProcessing.length === 0) {
+                setIsProcessing(false);
+                setInitialCount(0);
+                localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
+                localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
+                message.success('Proceso de envío masivo completado');
+              }
+            }
+            return stillProcessing;
+          });
+        }
+      } catch (err) {
+        console.error('[Bulk Send Polling] Error al verificar progreso:', err);
+      }
     }, 3000);
     
-    return () => clearInterval(interval);
-  }, [isProcessing, tipo, refetchVentas, refetchGuias, refetchRetenciones]);
+    return () => {
+      console.log(`[Bulk Send Polling] Deteniendo polling para ${tipo}`);
+      clearInterval(interval);
+    };
+  }, [isProcessing, tipo, page, refetchVentas, refetchGuias, refetchRetenciones, startDate, endDate, serie, message]);
 
   const getPendingDocs = useCallback(() => {
     if (tipo === 'ventas') return ventas?.data?.items || [];
@@ -121,31 +174,6 @@ const DocumentConfigPanel = ({
     if (tipo === 'retenciones') return retenciones?.data?.total || 0;
     return 0;
   }, [tipo, ventas, guias, retenciones]);
-
-  // Detectar progreso del envío masivo y actualizar la lista de pendientes
-  useEffect(() => {
-    if (!isProcessing || processingIds.length === 0) return;
-    
-    const pendingDocs = getPendingDocs();
-    const currentPendingIds = pendingDocs.map((d: any) => 
-      String(tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id))
-    );
-    
-    const stillProcessing = processingIds.filter(id => currentPendingIds.includes(id));
-    
-    if (stillProcessing.length !== processingIds.length) {
-      setProcessingIds(stillProcessing);
-      localStorage.setItem(`bulk_processing_ids_${tipo}`, JSON.stringify(stillProcessing));
-      
-      if (stillProcessing.length === 0) {
-        setIsProcessing(false);
-        setInitialCount(0);
-        localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
-        localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
-        message.success('Proceso de envío masivo completado');
-      }
-    }
-  }, [getPendingDocs, isProcessing, processingIds, tipo, message]);
 
   // Timeout de seguridad de 2 minutos para liberar la interfaz
   useEffect(() => {
