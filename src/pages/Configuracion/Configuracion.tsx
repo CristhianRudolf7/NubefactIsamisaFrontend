@@ -118,7 +118,7 @@ const DocumentConfigPanel = ({
         const checkParams = {
           estado: 'pendiente' as any,
           page: 1,
-          page_size: 200, // lote grande independiente de la paginación de la tabla
+          page_size: 1000, // Lote grande para cubrir la gran mayoría de envíos masivos
           fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
           fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined,
           serie: serie || undefined
@@ -131,10 +131,18 @@ const DocumentConfigPanel = ({
           const latestPendingIds = latestPendingItems.map((d: any) => 
             String(tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id))
           );
-          
           setProcessingIds(prevIds => {
-            const stillProcessing = prevIds.filter(id => latestPendingIds.includes(id));
-            console.log(`[Bulk Send Polling] Progreso: Quedan ${stillProcessing.length} de ${prevIds.length} IDs pendientes.`);
+            // Si el número de pendientes devueltos coincide con el total reportado (o es menor al tamaño de página), tenemos la lista completa.
+            const isListComplete = latestPendingIds.length === (res.data.total || 0) || latestPendingIds.length < 1000;
+            
+            const stillProcessing = prevIds.filter(id => {
+              if (latestPendingIds.includes(id)) return true;
+              // Si la lista está incompleta, no descartamos los que no vemos (podrían estar en la posición 1001+)
+              if (!isListComplete) return true;
+              return false;
+            });
+            
+            console.log(`[Bulk Send Polling] Progreso: Quedan ${stillProcessing.length} de ${initialCount} IDs pendientes.`);
             
             if (stillProcessing.length !== prevIds.length) {
               localStorage.setItem(`bulk_processing_ids_${tipo}`, JSON.stringify(stillProcessing));
