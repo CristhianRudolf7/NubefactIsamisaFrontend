@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Card, Descriptions, Table, Button, Space, Alert, Spin, App, Modal, Input } from 'antd';
 import { ArrowLeftOutlined, SendOutlined, EditOutlined, FilePdfOutlined, FileTextOutlined, FileZipOutlined, StopOutlined } from '@ant-design/icons';
 import { useVenta, useEnviarVenta, useAnularVenta } from '../../hooks/useVentas';
+import { ventasService } from '../../services/ventasService';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAppContext } from '../../contexts/AppContext';
 import { formatExcelDate, formatCurrency } from '../../utils/formatters';
@@ -40,9 +41,20 @@ export default function VentasDetail() {
   // Mostrar anular solo si está rechazado o pendiente
   const canAnular = ['rechazado', 'pendiente'].includes((cabecera.fe || '').toLowerCase());
 
-  const handleDownloadPdf = () => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    window.open(`${baseUrl}/ventas/${id}/pdf`, '_blank');
+  const handleDownloadPdf = async () => {
+    const result = await ventasService.descargarPdf(id!);
+    if (result.success && result.blob) {
+      const url = window.URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${cabecera.DocumentSerie || cabecera.Document}-${cabecera.DocumentNo || ''}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      message.warning(result.error || 'PDF no disponible');
+    }
   };
 
   const handleDownloadXml = () => {

@@ -51,7 +51,31 @@ export const ventasService = {
     });
     return response.data;
   },
-  
+  async descargarPdf(documentId: string): Promise<{ success: boolean; blob?: Blob; error?: string }> {
+    try {
+      const response = await api.get(`/ventas/${documentId}/pdf`, {
+        responseType: 'blob',
+      });
+      
+      // Verificar si es un PDF
+      if (response.data.type === 'application/pdf') {
+        return { success: true, blob: response.data };
+      }
+      
+      // Si no es PDF, intentar parsear como JSON (error)
+      const text = await response.data.text();
+      try {
+        const json = JSON.parse(text);
+        return { success: false, error: json.detail || 'PDF no disponible' };
+      } catch {
+        return { success: false, error: 'PDF no disponible' };
+      }
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { detail?: string } } };
+      return { success: false, error: axiosError.response?.data?.detail || 'Error al descargar PDF' };
+    }
+  },
+
   async rechazar(documentId: string): Promise<ResponseBase> {
     const response = await api.post(`/ventas/${documentId}/rechazar`);
     return response.data;

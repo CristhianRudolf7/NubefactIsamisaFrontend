@@ -8,6 +8,7 @@ import ColumnSelector from '../../components/common/ColumnSelector';
 import ChangesModal from '../../components/common/ChangesModal';
 import { useRetenciones, useEnviarRetencion, useAprobarRetencion, useRechazarRetencion } from '../../hooks/useRetenciones';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
+import { retencionesService } from '../../services/retencionesService';
 import { useAppContext } from '../../contexts/AppContext';
 import { RETENCIONES_COLUMNS, ESTADOS_DOCUMENTO } from '../../utils/constants';
 import { formatExcelDate, formatCurrency, formatSerieNumero } from '../../utils/formatters';
@@ -113,9 +114,20 @@ export default function RetencionesList() {
     return !estado || ['pendiente', 'error'].includes(estado) || canEdit(record);
   };
 
-  const handleDownloadPdf = (record: Record<string, unknown>) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    window.open(`${baseUrl}/retenciones/${record.Id}/pdf`, '_blank');
+  const handleDownloadPdf = async (record: Record<string, unknown>) => {
+    const result = await retencionesService.descargarPdf(record.Id as number);
+    if (result.success && result.blob) {
+      const url = window.URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${record.Serie || 'retencion'}-${record.Numero || record.Id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      message.warning(result.error || 'PDF no disponible');
+    }
   };
 
   const handleDownloadXml = (record: Record<string, unknown>) => {

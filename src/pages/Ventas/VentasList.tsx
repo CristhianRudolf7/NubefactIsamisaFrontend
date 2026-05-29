@@ -8,6 +8,7 @@ import ColumnSelector from '../../components/common/ColumnSelector';
 import ChangesModal from '../../components/common/ChangesModal';
 import { useVentas, useEnviarVenta, useAprobarVenta, useRechazarVenta } from '../../hooks/useVentas';
 import { useColumnVisibility } from '../../hooks/useColumnVisibility';
+import { ventasService } from '../../services/ventasService';
 import { useAppContext } from '../../contexts/AppContext';
 import { VENTAS_COLUMNS } from '../../utils/constants';
 import { formatExcelDate, formatCurrency, formatSerieNumero } from '../../utils/formatters';
@@ -113,9 +114,20 @@ export default function VentasList() {
     return ['pendiente', '', undefined].includes(estado) || canEdit(record);
   };
 
-  const handleDownloadPdf = (record: Record<string, unknown>) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-    window.open(`${baseUrl}/ventas/${record.Document}/pdf`, '_blank');
+  const handleDownloadPdf = async (record: Record<string, unknown>) => {
+    const result = await ventasService.descargarPdf(record.Document as string);
+    if (result.success && result.blob) {
+      const url = window.URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${record.DocumentSerie || record.Document}-${record.DocumentNo || ''}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } else {
+      message.warning(result.error || 'PDF no disponible');
+    }
   };
 
   const handleDownloadXml = (record: Record<string, unknown>) => {
