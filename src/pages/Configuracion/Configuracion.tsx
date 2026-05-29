@@ -138,12 +138,21 @@ const DocumentConfigPanel = ({
         const res = await service.listar(checkParams);
         if (res.success && res.data !== undefined) {
           const currentTotal = res.data.total ?? 0;
-          console.log(`[Bulk Send Polling] Pendientes ahora: ${currentTotal} (de ${initialCount} originales)`);
+          console.log(`[Bulk Send Polling] Total pendientes en BD: ${currentTotal} (iniciamos con ${initialCount} enviables)`);
 
-          setPendingCount(currentTotal);
-          localStorage.setItem(`bulk_pending_count_${tipo}`, String(currentTotal));
+          // El total de BD siempre incluye tickets (T*) que nunca bajarán.
+          // El initialCount representa cuántos documentos VÁLIDOS (no-T) enviamos.
+          // Consideramos completo cuando el total bajó al menos initialCount docs respecto al inicio.
+          // O cuando el total de pendientes enviables (aprox: currentTotal - ticketsBase) llega a 0.
+          // Simplificación: si currentTotal <= (totalOriginalConTickets - initialCount), terminamos.
+          const savedOriginalTotal = Number(localStorage.getItem(`bulk_original_total_${tipo}`) || '0');
+          const pendingEnviables = Math.max(0, currentTotal - (savedOriginalTotal - initialCount));
+          console.log(`[Bulk Send Polling] Enviables pendientes estimados: ${pendingEnviables} de ${initialCount}`);
 
-          if (currentTotal === 0) {
+          setPendingCount(pendingEnviables);
+          localStorage.setItem(`bulk_pending_count_${tipo}`, String(pendingEnviables));
+
+          if (pendingEnviables <= 0) {
             setIsProcessing(false);
             setInitialCount(0);
             setPendingCount(0);
@@ -209,9 +218,16 @@ const DocumentConfigPanel = ({
     const docs = getPendingDocs();
     return docs.filter((d: any) => {
         // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
-        return !d.necesita_aprobacion;
+        if (d.necesita_aprobacion) return false;
+        // Para ventas: no mostrar tickets (IDs/series que empiezan con T)
+        if (tipo === 'ventas') {
+          const id = d.Document || '';
+          const serie = d.DocumentSerie || '';
+          if (String(id).toUpperCase().startsWith('T') || String(serie).toUpperCase().startsWith('T')) return false;
+        }
+        return true;
     });
-  }, [getPendingDocs]);
+  }, [getPendingDocs, tipo]);
 
   const handleBulkSend = async () => {
     if (total === 0) {
@@ -243,9 +259,18 @@ const DocumentConfigPanel = ({
         return;
       }
 
-      const docsToSend = response.data.items.filter((d: any) => !d.necesita_aprobacion);
+      const docsToSend = response.data.items.filter((d: any) => {
+        if (d.necesita_aprobacion) return false;
+        // Para ventas: no enviar tickets (IDs que empiezan con T)
+        if (tipo === 'ventas') {
+          const id = d.Document || '';
+          const serie = d.DocumentSerie || '';
+          if (String(id).toUpperCase().startsWith('T') || String(serie).toUpperCase().startsWith('T')) return false;
+        }
+        return true;
+      });
       if (docsToSend.length === 0) {
-        message.warning('No hay documentos pendientes para enviar que no requieran aprobación');
+        message.warning('No hay documentos pendientes para enviar (todos son tickets u otros excluidos)');
         setLoading(false);
         return;
       }
@@ -254,6 +279,7 @@ const DocumentConfigPanel = ({
         const id = tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id);
         return String(id);
       });
+      console.log(`[Bulk Send Debug] IDs filtrados (sin tickets): ${ids.length} de ${response.data.items.length} totales`);
 
       // *** DEBUG: Ver muestra de IDs que se van a enviar ***
       console.log(`[Bulk Send Debug] Tipo de documento: ${tipo}`);
@@ -270,16 +296,19 @@ const DocumentConfigPanel = ({
         setBulkFechaInicio(fi);
         setBulkFechaFin(ff);
         setBulkSerie(sr);
+        // Guardar total original (incluyendo tickets) para calcular correctamente el progreso
+        const totalOriginalConTickets = response.data.total ?? 0;
         setPendingCount(ids.length);
         setInitialCount(ids.length);
         setIsProcessing(true);
         localStorage.setItem(`bulk_is_processing_${tipo}`, 'true');
         localStorage.setItem(`bulk_initial_count_${tipo}`, String(ids.length));
         localStorage.setItem(`bulk_pending_count_${tipo}`, String(ids.length));
+        localStorage.setItem(`bulk_original_total_${tipo}`, String(totalOriginalConTickets));
         localStorage.setItem(`bulk_fecha_inicio_${tipo}`, fi || '');
         localStorage.setItem(`bulk_fecha_fin_${tipo}`, ff || '');
         localStorage.setItem(`bulk_serie_${tipo}`, sr || '');
-        console.log(`[Bulk Send] Envío iniciado. Filtros guardados: fecha_inicio=${fi}, fecha_fin=${ff}, serie=${sr}`);
+        console.log(`[Bulk Send] Envío iniciado. ${ids.length} docs enviables de ${totalOriginalConTickets} totales. Filtros: fecha_inicio=${fi}, fecha_fin=${ff}, serie=${sr}`);
         message.info(result.message + ' - Procesando en segundo plano...');
       } else {
         message.error(result.message);
