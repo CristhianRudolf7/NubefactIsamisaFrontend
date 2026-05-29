@@ -7,6 +7,7 @@ import {
   Switch, 
   Form, 
   InputNumber, 
+  Input,
   Button, 
   Space, 
   DatePicker, 
@@ -62,15 +63,16 @@ const DocumentConfigPanel = ({
   const { usuario } = useAppContext();
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
+  const [serie, setSerie] = useState<string>('');
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Reset page when dates change
+  // Reset page when dates or series change
   useEffect(() => {
     setPage(1);
-  }, [startDate, endDate]);
+  }, [startDate, endDate, serie]);
 
   // Fetch pending docs based on type
   const queryParams = useMemo(() => ({
@@ -78,8 +80,9 @@ const DocumentConfigPanel = ({
     page,
     page_size: pageSize,
     fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
-    fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined
-  }), [startDate, endDate, page, pageSize]);
+    fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined,
+    serie: serie || undefined
+  }), [startDate, endDate, serie, page, pageSize]);
 
   const { data: ventas, refetch: refetchVentas } = useVentas(queryParams as any, { enabled: active && tipo === 'ventas' });
   const { data: guias, refetch: refetchGuias } = useGuias(queryParams as any, { enabled: active && tipo === 'guias' });
@@ -170,7 +173,8 @@ const DocumentConfigPanel = ({
         page: 1,
         page_size: 10000,
         fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
-        fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined
+        fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined,
+        serie: serie || undefined
       };
 
       const response = await service.listar(fetchParams);
@@ -310,28 +314,45 @@ const DocumentConfigPanel = ({
               />
             ) : (
               <Space orientation="vertical" style={{ width: '100%' }} size="middle">
-                <div>
-                  <Text strong>Filtrar por rango de fechas:</Text>
-                    <div style={{ marginTop: 8 }}>
-                      <Row gutter={8}>
-                        <Col span={12}>
-                          <DatePicker 
-                            format="DD/MM/YYYY"
-                            placeholder="Desde"
-                            style={{ width: '100%' }} 
-                            onChange={(val) => setStartDate(val)}
-                          />
-                        </Col>
-                        <Col span={12}>
-                          <DatePicker 
-                            format="DD/MM/YYYY"
-                            placeholder="Hasta"
-                            style={{ width: '100%' }} 
-                            onChange={(val) => setEndDate(val)}
-                          />
-                        </Col>
-                      </Row>
-                    </div>
+                <div style={{ marginBottom: 8 }}>
+                  <Row gutter={16} align="bottom">
+                    <Col xs={24} sm={16}>
+                      <Text strong>Filtrar por rango de fechas:</Text>
+                      <div style={{ marginTop: 8 }}>
+                        <Row gutter={8}>
+                          <Col span={12}>
+                            <DatePicker 
+                              format="DD/MM/YYYY"
+                              placeholder="Desde"
+                              style={{ width: '100%' }} 
+                              value={startDate}
+                              onChange={(val) => setStartDate(val)}
+                            />
+                          </Col>
+                          <Col span={12}>
+                            <DatePicker 
+                              format="DD/MM/YYYY"
+                              placeholder="Hasta"
+                              style={{ width: '100%' }} 
+                              value={endDate}
+                              onChange={(val) => setEndDate(val)}
+                            />
+                          </Col>
+                        </Row>
+                      </div>
+                    </Col>
+                    <Col xs={24} sm={8}>
+                      <Text strong>Serie:</Text>
+                      <div style={{ marginTop: 8 }}>
+                        <Input 
+                          placeholder="Ej: F001, B037"
+                          value={serie}
+                          onChange={(e) => setSerie(e.target.value.toUpperCase().trim())}
+                          allowClear
+                        />
+                      </div>
+                    </Col>
+                  </Row>
                 </div>
                 
                 <Table 
