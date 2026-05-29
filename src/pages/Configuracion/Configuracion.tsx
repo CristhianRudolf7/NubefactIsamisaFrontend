@@ -131,7 +131,18 @@ const DocumentConfigPanel = ({
           const latestPendingIds = latestPendingItems.map((d: any) => 
             String(tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id))
           );
+
+          // *** DEBUG: Comparar IDs para detectar desajustes de formato ***
+          console.log(`[Bulk Send Debug] Total pendientes API: ${res.data.total}, Items devueltos: ${latestPendingIds.length}`);
+          console.log(`[Bulk Send Debug] Primeros 3 IDs del API (pendientes):`, latestPendingIds.slice(0, 3));
+
           setProcessingIds(prevIds => {
+            console.log(`[Bulk Send Debug] Primeros 3 IDs en seguimiento (processingIds):`, prevIds.slice(0, 3));
+            console.log(`[Bulk Send Debug] Tipos - API ID tipo: ${typeof latestPendingIds[0]}, Tracking ID tipo: ${typeof prevIds[0]}`);
+            // Cuántos de los IDs trackeados están en la lista de pendientes del API
+            const matchCount = prevIds.filter(id => latestPendingIds.includes(id)).length;
+            console.log(`[Bulk Send Debug] Coincidencias directas: ${matchCount} de ${prevIds.length}`);
+
             // Si el número de pendientes devueltos coincide con el total reportado (o es menor al tamaño de página), tenemos la lista completa.
             const isListComplete = latestPendingIds.length === (res.data.total || 0) || latestPendingIds.length < 1000;
             
@@ -260,6 +271,12 @@ const DocumentConfigPanel = ({
         return String(id);
       });
 
+      // *** DEBUG: Ver muestra de IDs que se van a enviar ***
+      console.log(`[Bulk Send Debug] Tipo de documento: ${tipo}`);
+      console.log(`[Bulk Send Debug] Total IDs a enviar: ${ids.length}`);
+      console.log(`[Bulk Send Debug] Primeros 3 IDs (muestra):`, ids.slice(0, 3));
+      console.log(`[Bulk Send Debug] Tipo de dato de ID[0]:`, typeof ids[0], '| Valor:', ids[0]);
+
       const result = await service.enviarMasivo(ids, usuario);
       if (result.success) {
         setProcessingIds(ids);
@@ -268,6 +285,7 @@ const DocumentConfigPanel = ({
         localStorage.setItem(`bulk_processing_ids_${tipo}`, JSON.stringify(ids));
         localStorage.setItem(`bulk_initial_count_${tipo}`, String(ids.length));
         localStorage.setItem(`bulk_is_processing_${tipo}`, 'true');
+        console.log(`[Bulk Send Debug] IDs guardados en localStorage y processingIds`);
         message.info(result.message + ' - Procesando en segundo plano...');
       } else {
         message.error(result.message);
