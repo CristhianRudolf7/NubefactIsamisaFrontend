@@ -45,17 +45,11 @@ const DocumentConfigPanel = ({
   tipo, 
   config, 
   onUpdate,
-  isProcessing,
-  onStartProcessing,
-  onStopProcessing,
   active
 }: { 
   tipo: string; 
   config: any; 
   onUpdate: (datos: any) => Promise<void>;
-  isProcessing: boolean;
-  onStartProcessing: (count: number) => void;
-  onStopProcessing: () => void;
   active: boolean;
 }) => {
   const { message } = App.useApp();
@@ -64,7 +58,20 @@ const DocumentConfigPanel = ({
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
   const [serie, setSerie] = useState<string>('');
-  const [processingIds, setProcessingIds] = useState<string[]>([]);
+  
+  // Estados de envío masivo persistentes por tipo de documento usando localStorage
+  const [isProcessing, setIsProcessing] = useState<boolean>(() => {
+    return localStorage.getItem(`bulk_is_processing_${tipo}`) === 'true';
+  });
+  const [processingIds, setProcessingIds] = useState<string[]>(() => {
+    const saved = localStorage.getItem(`bulk_processing_ids_${tipo}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [initialCount, setInitialCount] = useState<number>(() => {
+    const saved = localStorage.getItem(`bulk_initial_count_${tipo}`);
+    return saved ? Number(saved) : 0;
+  });
+
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -115,7 +122,7 @@ const DocumentConfigPanel = ({
     return 0;
   }, [tipo, ventas, guias, retenciones]);
 
-  // Detectar cuando termina el procesamiento
+  // Detectar progreso del envío masivo y actualizar la lista de pendientes
   useEffect(() => {
     if (!isProcessing || processingIds.length === 0) return;
     
@@ -126,25 +133,46 @@ const DocumentConfigPanel = ({
     
     const stillProcessing = processingIds.filter(id => currentPendingIds.includes(id));
     
-    if (stillProcessing.length === 0) {
-      onStopProcessing();
-      setProcessingIds([]);
-      message.success('Proceso de envío completado');
+    if (stillProcessing.length !== processingIds.length) {
+      setProcessingIds(stillProcessing);
+      localStorage.setItem(`bulk_processing_ids_${tipo}`, JSON.stringify(stillProcessing));
+      
+      if (stillProcessing.length === 0) {
+        setIsProcessing(false);
+        setInitialCount(0);
+        localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
+        localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
+        message.success('Proceso de envío masivo completado');
+      }
     }
-  }, [getPendingDocs, isProcessing, processingIds, tipo, onStopProcessing, message]);
+  }, [getPendingDocs, isProcessing, processingIds, tipo, message]);
 
-  // Timeout de seguridad de 2 minutos para evitar que la animación se quede congelada si algún documento falla o se omite
+  // Timeout de seguridad de 2 minutos para liberar la interfaz
   useEffect(() => {
     if (!isProcessing || processingIds.length === 0) return;
 
     const timeout = setTimeout(() => {
-      onStopProcessing();
+      setIsProcessing(false);
       setProcessingIds([]);
+      setInitialCount(0);
+      localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
+      localStorage.setItem(`bulk_processing_ids_${tipo}`, '[]');
+      localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
       message.warning('El envío masivo está tardando más de lo esperado. El proceso continúa en segundo plano; actualice la página para verificar el estado final.');
     }, 120000);
 
     return () => clearTimeout(timeout);
-  }, [isProcessing, processingIds, onStopProcessing, message]);
+  }, [isProcessing, processingIds, tipo, message]);
+
+  const handleCancelBulkSend = () => {
+    setIsProcessing(false);
+    setProcessingIds([]);
+    setInitialCount(0);
+    localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
+    localStorage.setItem(`bulk_processing_ids_${tipo}`, '[]');
+    localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
+    message.info('Seguimiento de envío masivo detenido. Los documentos se seguirán procesando en segundo plano en el servidor.');
+  };
 
   const filteredDocs = useMemo(() => {
     const docs = getPendingDocs();
@@ -199,7 +227,11 @@ const DocumentConfigPanel = ({
       const result = await service.enviarMasivo(ids, usuario);
       if (result.success) {
         setProcessingIds(ids);
-        onStartProcessing(docsToSend.length);
+        setInitialCount(ids.length);
+        setIsProcessing(true);
+        localStorage.setItem(`bulk_processing_ids_${tipo}`, JSON.stringify(ids));
+        localStorage.setItem(`bulk_initial_count_${tipo}`, String(ids.length));
+        localStorage.setItem(`bulk_is_processing_${tipo}`, 'true');
         message.info(result.message + ' - Procesando en segundo plano...');
       } else {
         message.error(result.message);
@@ -303,7 +335,20 @@ const DocumentConfigPanel = ({
                 showIcon
                 icon={<Spin size="small" />}
                 message="Envío en proceso"
-                description={`Enviando ${processingIds.length} documentos a NubeFact. La tabla se actualizará automáticamente cuando termine el proceso.`}
+                description={
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <div>
+                      {`Enviando documentos a NubeFact. Quedan ${processingIds.length} de ${initialCount} por enviar.`}
+                    </div>
+                    <Button 
+                      danger 
+                      size="small" 
+                      onClick={handleCancelBulkSend}
+                    >
+                      Detener Envío Masivo
+                    </Button>
+                  </Space>
+                }
                 style={{ marginBottom: 16 }}
               />
             )}
@@ -384,7 +429,6 @@ const DocumentConfigPanel = ({
 
 export default function Configuracion() {
   const { configs, updateConfig } = useConfig();
-  const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState('ventas');
 
   const handleUpdate = async (tipo: string, datos: any) => {
@@ -395,15 +439,6 @@ export default function Configuracion() {
     }
   };
 
-  const handleStartProcessing = useCallback((count: number) => {
-    console.log(`Iniciando procesamiento de ${count} documentos`);
-    setIsProcessing(true);
-  }, []);
-
-  const handleStopProcessing = useCallback(() => {
-    setIsProcessing(false);
-  }, []);
-
   const items = [
     { 
       key: 'ventas', 
@@ -412,9 +447,6 @@ export default function Configuracion() {
         tipo="ventas" 
         config={configs.find(c => c.tipo_documento === 'ventas')} 
         onUpdate={(datos) => handleUpdate('ventas', datos)} 
-        isProcessing={isProcessing}
-        onStartProcessing={handleStartProcessing}
-        onStopProcessing={handleStopProcessing}
         active={activeTab === 'ventas'}
       /> 
     },
@@ -425,9 +457,6 @@ export default function Configuracion() {
         tipo="guias" 
         config={configs.find(c => c.tipo_documento === 'guias')} 
         onUpdate={(datos) => handleUpdate('guias', datos)} 
-        isProcessing={isProcessing}
-        onStartProcessing={handleStartProcessing}
-        onStopProcessing={handleStopProcessing}
         active={activeTab === 'guias'}
       /> 
     },
@@ -438,9 +467,6 @@ export default function Configuracion() {
         tipo="retenciones" 
         config={configs.find(c => c.tipo_documento === 'retenciones')} 
         onUpdate={(datos) => handleUpdate('retenciones', datos)} 
-        isProcessing={isProcessing}
-        onStartProcessing={handleStartProcessing}
-        onStopProcessing={handleStopProcessing}
         active={activeTab === 'retenciones'}
       /> 
     },
