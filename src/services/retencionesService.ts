@@ -40,8 +40,8 @@ export const retencionesService = {
     return response.data;
   },
 
-  async enviarMasivo(ids: string[], usuario: string): Promise<ResponseBase> {
-    const response = await api.post('/retenciones/bulk-enviar', { ids, usuario });
+  async enviarMasivo(params: { fecha_inicio?: string; fecha_fin?: string; serie?: string; usuario: string }): Promise<ResponseBase> {
+    const response = await api.post('/retenciones/bulk-enviar', params);
     return response.data;
   },
 
@@ -56,12 +56,12 @@ export const retencionesService = {
       const response = await api.get(`/retenciones/${retencionId}/pdf`, {
         responseType: 'blob',
       });
-      
+
       // Verificar si es un PDF
       if (response.data.type === 'application/pdf') {
         return { success: true, blob: response.data };
       }
-      
+
       // Si no es PDF, intentar parsear como JSON (error)
       const text = await response.data.text();
       try {

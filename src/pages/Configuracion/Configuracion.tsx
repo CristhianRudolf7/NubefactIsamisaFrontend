@@ -1,18 +1,18 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import dayjs from 'dayjs';
-import { 
-  Typography, 
-  Card, 
-  Tabs, 
-  Switch, 
-  Form, 
-  InputNumber, 
+import {
+  Typography,
+  Card,
+  Tabs,
+  Switch,
+  Form,
+  InputNumber,
   Input,
-  Button, 
-  Space, 
-  DatePicker, 
-  Table, 
-  Tag, 
+  Button,
+  Space,
+  DatePicker,
+  Table,
+  Tag,
   App,
   Divider,
   Row,
@@ -21,12 +21,12 @@ import {
   Alert,
   Spin
 } from 'antd';
-import { 
-  SettingOutlined, 
-  RocketOutlined, 
-  HistoryOutlined, 
+import {
+  SettingOutlined,
+  RocketOutlined,
+  HistoryOutlined,
   SearchOutlined,
-  SendOutlined 
+  SendOutlined
 } from '@ant-design/icons';
 import { useConfig } from '../../hooks/useConfig';
 import { useVentas } from '../../hooks/useVentas';
@@ -41,14 +41,14 @@ import { useAppContext } from '../../contexts/AppContext';
 
 const { Title, Text, Paragraph } = Typography;
 
-const DocumentConfigPanel = ({ 
-  tipo, 
-  config, 
+const DocumentConfigPanel = ({
+  tipo,
+  config,
   onUpdate,
   active
-}: { 
-  tipo: string; 
-  config: any; 
+}: {
+  tipo: string;
+  config: any;
   onUpdate: (datos: any) => Promise<void>;
   active: boolean;
 }) => {
@@ -58,7 +58,7 @@ const DocumentConfigPanel = ({
   const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
   const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
   const [serie, setSerie] = useState<string>('');
-  
+
   // Estados de envío masivo persistentes por tipo de documento usando localStorage
   const [isProcessing, setIsProcessing] = useState<boolean>(() => {
     return localStorage.getItem(`bulk_is_processing_${tipo}`) === 'true';
@@ -217,15 +217,15 @@ const DocumentConfigPanel = ({
   const filteredDocs = useMemo(() => {
     const docs = getPendingDocs();
     return docs.filter((d: any) => {
-        // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
-        if (d.necesita_aprobacion) return false;
-        // Para ventas: no mostrar tickets (IDs/series que empiezan con T)
-        if (tipo === 'ventas') {
-          const id = d.Document || '';
-          const serie = d.DocumentSerie || '';
-          if (String(id).toUpperCase().startsWith('T') || String(serie).toUpperCase().startsWith('T')) return false;
-        }
-        return true;
+      // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
+      if (d.necesita_aprobacion) return false;
+      // Para ventas: no mostrar tickets (IDs/series que empiezan con T)
+      if (tipo === 'ventas') {
+        const id = d.Document || '';
+        const serie = d.DocumentSerie || '';
+        if (String(id).toUpperCase().startsWith('T') || String(serie).toUpperCase().startsWith('T')) return false;
+      }
+      return true;
     });
   }, [getPendingDocs, tipo]);
 
@@ -242,73 +242,46 @@ const DocumentConfigPanel = ({
       else if (tipo === 'guias') service = guiasService;
       else service = retencionesService;
 
-      // Obtener todos los IDs coincidentes (hasta 10000) en segundo plano para realizar el envío
-      const fetchParams = {
-        estado: 'pendiente' as any,
-        page: 1,
-        page_size: 10000,
-        fecha_inicio: startDate ? startDate.format('DD-MM-YYYY') : undefined,
-        fecha_fin: endDate ? endDate.format('DD-MM-YYYY') : undefined,
-        serie: serie || undefined
+      const fi = startDate ? startDate.format('DD-MM-YYYY') : undefined;
+      const ff = endDate ? endDate.format('DD-MM-YYYY') : undefined;
+      const sr = serie || undefined;
+
+      const bulkParams = {
+        fecha_inicio: fi,
+        fecha_fin: ff,
+        serie: sr,
+        usuario: usuario
       };
 
-      const response = await service.listar(fetchParams);
-      if (!response.success || !response.data?.items) {
-        message.error('Error al obtener la lista de documentos para enviar');
-        setLoading(false);
-        return;
-      }
+      console.log(`[Bulk Send] Iniciando envío masivo para ${tipo}`, bulkParams);
+      const result = await service.enviarMasivo(bulkParams);
 
-      const docsToSend = response.data.items.filter((d: any) => {
-        if (d.necesita_aprobacion) return false;
-        // Para ventas: no enviar tickets (IDs que empiezan con T)
-        if (tipo === 'ventas') {
-          const id = d.Document || '';
-          const serie = d.DocumentSerie || '';
-          if (String(id).toUpperCase().startsWith('T') || String(serie).toUpperCase().startsWith('T')) return false;
-        }
-        return true;
-      });
-      if (docsToSend.length === 0) {
-        message.warning('No hay documentos pendientes para enviar (todos son tickets u otros excluidos)');
-        setLoading(false);
-        return;
-      }
-
-      const ids = docsToSend.map((d: any) => {
-        const id = tipo === 'ventas' ? d.Document : (tipo === 'guias' ? d.Transaction : d.Id);
-        return String(id);
-      });
-      console.log(`[Bulk Send Debug] IDs filtrados (sin tickets): ${ids.length} de ${response.data.items.length} totales`);
-
-      // *** DEBUG: Ver muestra de IDs que se van a enviar ***
-      console.log(`[Bulk Send Debug] Tipo de documento: ${tipo}`);
-      console.log(`[Bulk Send Debug] Total IDs a enviar: ${ids.length}`);
-      console.log(`[Bulk Send Debug] Primeros 3 IDs (muestra):`, ids.slice(0, 3));
-      console.log(`[Bulk Send Debug] Tipo de dato de ID[0]:`, typeof ids[0], '| Valor:', ids[0]);
-
-      const result = await service.enviarMasivo(ids, usuario);
       if (result.success) {
+        const count = result.data?.count ?? 0;
+        if (count === 0) {
+          message.warning(result.message || 'No hay documentos pendientes para enviar (todos son tickets u otros excluidos)');
+          setLoading(false);
+          return;
+        }
+
         // Guardar filtros activos para que el polling use los mismos criterios
-        const fi = startDate ? startDate.format('DD-MM-YYYY') : undefined;
-        const ff = endDate ? endDate.format('DD-MM-YYYY') : undefined;
-        const sr = serie || undefined;
         setBulkFechaInicio(fi);
         setBulkFechaFin(ff);
         setBulkSerie(sr);
+        
         // Guardar total original (incluyendo tickets) para calcular correctamente el progreso
-        const totalOriginalConTickets = response.data.total ?? 0;
-        setPendingCount(ids.length);
-        setInitialCount(ids.length);
+        const totalOriginalConTickets = total;
+        setPendingCount(count);
+        setInitialCount(count);
         setIsProcessing(true);
         localStorage.setItem(`bulk_is_processing_${tipo}`, 'true');
-        localStorage.setItem(`bulk_initial_count_${tipo}`, String(ids.length));
-        localStorage.setItem(`bulk_pending_count_${tipo}`, String(ids.length));
+        localStorage.setItem(`bulk_initial_count_${tipo}`, String(count));
+        localStorage.setItem(`bulk_pending_count_${tipo}`, String(count));
         localStorage.setItem(`bulk_original_total_${tipo}`, String(totalOriginalConTickets));
         localStorage.setItem(`bulk_fecha_inicio_${tipo}`, fi || '');
         localStorage.setItem(`bulk_fecha_fin_${tipo}`, ff || '');
         localStorage.setItem(`bulk_serie_${tipo}`, sr || '');
-        console.log(`[Bulk Send] Envío iniciado. ${ids.length} docs enviables de ${totalOriginalConTickets} totales. Filtros: fecha_inicio=${fi}, fecha_fin=${ff}, serie=${sr}`);
+        console.log(`[Bulk Send] Envío iniciado. ${count} docs enviables de ${totalOriginalConTickets} totales. Filtros: fecha_inicio=${fi}, fecha_fin=${ff}, serie=${sr}`);
         message.info(result.message + ' - Procesando en segundo plano...');
       } else {
         message.error(result.message);
@@ -321,24 +294,24 @@ const DocumentConfigPanel = ({
   };
 
   const columns = [
-    { 
-      title: 'Documento', 
-      key: 'doc', 
+    {
+      title: 'Documento',
+      key: 'doc',
       render: (record: any) => tipo === 'ventas' ? formatSerieNumero(record.DocumentSerie, record.DocumentNo) : (tipo === 'guias' ? formatSerieNumero(record.DocumentSerie, record.DocumentNo) : formatSerieNumero(record.Serie, record.Numero))
     },
-    { 
-      title: 'Cliente/Proveedor', 
-      key: 'entity', 
-      render: (record: any) => record.VendorName || record.TargetPersonName || '-' 
+    {
+      title: 'Cliente/Proveedor',
+      key: 'entity',
+      render: (record: any) => record.VendorName || record.TargetPersonName || '-'
     },
-    { 
-      title: 'Fecha', 
-      key: 'date', 
-      render: (record: any) => formatExcelDate(tipo === 'guias' ? record.TransactionDate : record.DocumentDate) 
+    {
+      title: 'Fecha',
+      key: 'date',
+      render: (record: any) => formatExcelDate(tipo === 'guias' ? record.TransactionDate : record.DocumentDate)
     },
-    { 
-      title: 'Estado', 
-      dataIndex: 'fe', 
+    {
+      title: 'Estado',
+      dataIndex: 'fe',
       key: 'status',
       render: (fe: string) => <Tag color="orange">{fe || 'PENDIENTE'}</Tag>
     }
@@ -351,7 +324,7 @@ const DocumentConfigPanel = ({
           <Card title={<Space><SettingOutlined /> Configuración de Envío</Space>} className="shadow-sm">
             <Form layout="vertical">
               <Form.Item label="Modo de Envío" extra="Define si los documentos se envían automáticamente al detectarse o si prefieres enviarlos por lotes manualmente.">
-                <Tabs 
+                <Tabs
                   activeKey={config?.modo || 'manual'}
                   onChange={(val) => onUpdate({ modo: val })}
                   items={[
@@ -366,18 +339,18 @@ const DocumentConfigPanel = ({
                   <Space orientation="vertical" style={{ width: '100%' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text>Activar procesador automático</Text>
-                      <Switch 
-                        checked={config?.activo} 
-                        onChange={(val) => onUpdate({ activo: val })} 
+                      <Switch
+                        checked={config?.activo}
+                        onChange={(val) => onUpdate({ activo: val })}
                       />
                     </div>
                     <Divider style={{ margin: '12px 0' }} />
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text>Intervalo de revisión (minutos)</Text>
-                      <InputNumber 
-                        min={1} 
-                        max={60} 
-                        value={Math.floor((config?.intervalo_segundos || 600) / 60)} 
+                      <InputNumber
+                        min={1}
+                        max={60}
+                        value={Math.floor((config?.intervalo_segundos || 600) / 60)}
                         onChange={(val) => onUpdate({ intervalo_segundos: (val || 1) * 60 })}
                       />
                     </div>
@@ -389,14 +362,14 @@ const DocumentConfigPanel = ({
         </Col>
 
         <Col xs={24} md={14}>
-          <Card 
+          <Card
             title={<Space><SearchOutlined /> Envío Manual / Masivo</Space>}
             className="shadow-sm"
             extra={
               user?.rol !== 'trabajador' && (
-                <Button 
-                  type="primary" 
-                  icon={<SendOutlined />} 
+                <Button
+                  type="primary"
+                  icon={<SendOutlined />}
                   loading={loading || isProcessing}
                   disabled={loading || isProcessing || config?.modo === 'automatico' || total === 0}
                   onClick={handleBulkSend}
@@ -407,8 +380,8 @@ const DocumentConfigPanel = ({
             }
           >
             {isProcessing && (
-              <Alert 
-                type="info" 
+              <Alert
+                type="info"
                 showIcon
                 icon={<Spin size="small" />}
                 title="Envío en proceso"
@@ -417,9 +390,9 @@ const DocumentConfigPanel = ({
                     <div>
                       {`Enviando documentos a NubeFact. Quedan ${pendingCount} de ${initialCount} por enviar.`}
                     </div>
-                    <Button 
-                      danger 
-                      size="small" 
+                    <Button
+                      danger
+                      size="small"
                       onClick={handleCancelBulkSend}
                     >
                       Detener Envío Masivo
@@ -430,8 +403,8 @@ const DocumentConfigPanel = ({
               />
             )}
             {config?.modo === 'automatico' ? (
-              <Empty 
-                description="El modo automático está activo. El sistema procesará los documentos sin intervención manual." 
+              <Empty
+                description="El modo automático está activo. El sistema procesará los documentos sin intervención manual."
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
               />
             ) : (
@@ -443,19 +416,19 @@ const DocumentConfigPanel = ({
                       <div style={{ marginTop: 8 }}>
                         <Row gutter={8}>
                           <Col span={12}>
-                            <DatePicker 
+                            <DatePicker
                               format="DD/MM/YYYY"
                               placeholder="Desde"
-                              style={{ width: '100%' }} 
+                              style={{ width: '100%' }}
                               value={startDate}
                               onChange={(val) => setStartDate(val)}
                             />
                           </Col>
                           <Col span={12}>
-                            <DatePicker 
+                            <DatePicker
                               format="DD/MM/YYYY"
                               placeholder="Hasta"
-                              style={{ width: '100%' }} 
+                              style={{ width: '100%' }}
                               value={endDate}
                               onChange={(val) => setEndDate(val)}
                             />
@@ -466,7 +439,7 @@ const DocumentConfigPanel = ({
                     <Col xs={24} sm={8}>
                       <Text strong>Serie:</Text>
                       <div style={{ marginTop: 8 }}>
-                        <Input 
+                        <Input
                           placeholder="Ej: F001, B037"
                           value={serie}
                           onChange={(e) => setSerie(e.target.value.toUpperCase().trim())}
@@ -476,11 +449,11 @@ const DocumentConfigPanel = ({
                     </Col>
                   </Row>
                 </div>
-                
-                <Table 
+
+                <Table
                   size="small"
-                  dataSource={filteredDocs} 
-                  columns={columns} 
+                  dataSource={filteredDocs}
+                  columns={columns}
                   rowKey={(record: any) => record.Document || record.Transaction || record.Id}
                   pagination={{
                     current: page,
@@ -517,35 +490,35 @@ export default function Configuracion() {
   };
 
   const items = [
-    { 
-      key: 'ventas', 
-      label: 'Ventas (Facturas/Boletas)', 
-      children: <DocumentConfigPanel 
-        tipo="ventas" 
-        config={configs.find(c => c.tipo_documento === 'ventas')} 
-        onUpdate={(datos) => handleUpdate('ventas', datos)} 
+    {
+      key: 'ventas',
+      label: 'Ventas (Facturas/Boletas)',
+      children: <DocumentConfigPanel
+        tipo="ventas"
+        config={configs.find(c => c.tipo_documento === 'ventas')}
+        onUpdate={(datos) => handleUpdate('ventas', datos)}
         active={activeTab === 'ventas'}
-      /> 
+      />
     },
-    { 
-      key: 'guias', 
-      label: 'Guías de Remisión', 
-      children: <DocumentConfigPanel 
-        tipo="guias" 
-        config={configs.find(c => c.tipo_documento === 'guias')} 
-        onUpdate={(datos) => handleUpdate('guias', datos)} 
+    {
+      key: 'guias',
+      label: 'Guías de Remisión',
+      children: <DocumentConfigPanel
+        tipo="guias"
+        config={configs.find(c => c.tipo_documento === 'guias')}
+        onUpdate={(datos) => handleUpdate('guias', datos)}
         active={activeTab === 'guias'}
-      /> 
+      />
     },
-    { 
-      key: 'retenciones', 
-      label: 'Retenciones', 
-      children: <DocumentConfigPanel 
-        tipo="retenciones" 
-        config={configs.find(c => c.tipo_documento === 'retenciones')} 
-        onUpdate={(datos) => handleUpdate('retenciones', datos)} 
+    {
+      key: 'retenciones',
+      label: 'Retenciones',
+      children: <DocumentConfigPanel
+        tipo="retenciones"
+        config={configs.find(c => c.tipo_documento === 'retenciones')}
+        onUpdate={(datos) => handleUpdate('retenciones', datos)}
         active={activeTab === 'retenciones'}
-      /> 
+      />
     },
   ];
 
@@ -559,10 +532,10 @@ export default function Configuracion() {
       </div>
 
       <Card className="shadow-sm">
-        <Tabs 
-          activeKey={activeTab} 
+        <Tabs
+          activeKey={activeTab}
           onChange={setActiveTab}
-          items={items} 
+          items={items}
           tabPosition="top"
           size="large"
         />
