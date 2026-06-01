@@ -55,9 +55,41 @@ const DocumentConfigPanel = ({
   const { message } = App.useApp();
   const { user } = useAuth();
   const { usuario } = useAppContext();
-  const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(null);
-  const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(null);
-  const [serie, setSerie] = useState<string>('');
+  // Guardar y precargar filtros en localStorage por tipo de documento
+  const [startDate, setStartDate] = useState<dayjs.Dayjs | null>(() => {
+    const saved = localStorage.getItem(`bulk_filter_start_date_${tipo}`);
+    return saved ? dayjs(saved) : null;
+  });
+  const [endDate, setEndDate] = useState<dayjs.Dayjs | null>(() => {
+    const saved = localStorage.getItem(`bulk_filter_end_date_${tipo}`);
+    return saved ? dayjs(saved) : null;
+  });
+  const [serie, setSerie] = useState<string>(() => {
+    return localStorage.getItem(`bulk_filter_serie_${tipo}`) || '';
+  });
+
+  const handleStartDateChange = (val: dayjs.Dayjs | null) => {
+    setStartDate(val);
+    if (val) {
+      localStorage.setItem(`bulk_filter_start_date_${tipo}`, val.toISOString());
+    } else {
+      localStorage.removeItem(`bulk_filter_start_date_${tipo}`);
+    }
+  };
+
+  const handleEndDateChange = (val: dayjs.Dayjs | null) => {
+    setEndDate(val);
+    if (val) {
+      localStorage.setItem(`bulk_filter_end_date_${tipo}`, val.toISOString());
+    } else {
+      localStorage.removeItem(`bulk_filter_end_date_${tipo}`);
+    }
+  };
+
+  const handleSerieChange = (val: string) => {
+    setSerie(val);
+    localStorage.setItem(`bulk_filter_serie_${tipo}`, val);
+  };
 
   // Estados de envío masivo persistentes por tipo de documento usando localStorage
   const [isProcessing, setIsProcessing] = useState<boolean>(() => {
@@ -72,17 +104,6 @@ const DocumentConfigPanel = ({
     const saved = localStorage.getItem(`bulk_initial_count_${tipo}`);
     return saved ? Number(saved) : 0;
   });
-  // Filtros guardados al momento de iniciar el envío (para que el poll use los mismos filtros)
-  const [bulkFechaInicio, setBulkFechaInicio] = useState<string | undefined>(() =>
-    localStorage.getItem(`bulk_fecha_inicio_${tipo}`) || undefined
-  );
-  const [bulkFechaFin, setBulkFechaFin] = useState<string | undefined>(() =>
-    localStorage.getItem(`bulk_fecha_fin_${tipo}`) || undefined
-  );
-  const [bulkSerie, setBulkSerie] = useState<string | undefined>(() =>
-    localStorage.getItem(`bulk_serie_${tipo}`) || undefined
-  );
-
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -106,73 +127,6 @@ const DocumentConfigPanel = ({
   const { data: guias, refetch: refetchGuias } = useGuias(queryParams as any, { enabled: active && tipo === 'guias' });
   const { data: retenciones, refetch: refetchRetenciones } = useRetenciones(queryParams as any, { enabled: active && tipo === 'retenciones' });
 
-  // Polling para actualizar documentos mientras se procesan
-  useEffect(() => {
-    if (!isProcessing) return;
-
-    console.log(`[Bulk Send Polling] Iniciando polling para ${tipo}. Pendientes iniciales: ${initialCount}`);
-
-    const interval = setInterval(async () => {
-      // 1. Refrescar la tabla visible
-      if (tipo === 'ventas') refetchVentas();
-      else if (tipo === 'guias') refetchGuias();
-      else refetchRetenciones();
-
-      // 2. Consulta ligera SOLO para obtener el total de pendientes (page_size mínimo = rápido)
-      try {
-        let service: any;
-        if (tipo === 'ventas') service = ventasService;
-        else if (tipo === 'guias') service = guiasService;
-        else service = retencionesService;
-
-        const checkParams = {
-          estado: 'pendiente' as any,
-          page: 1,
-          page_size: 5, // Solo necesitamos el campo "total", no los items
-          fecha_inicio: bulkFechaInicio,
-          fecha_fin: bulkFechaFin,
-          serie: bulkSerie || undefined
-        };
-
-        console.log(`[Bulk Send Polling] Consultando total de pendientes...`, checkParams);
-        const res = await service.listar(checkParams);
-        if (res.success && res.data !== undefined) {
-          const currentTotal = res.data.total ?? 0;
-          console.log(`[Bulk Send Polling] Total pendientes en BD: ${currentTotal} (iniciamos con ${initialCount} enviables)`);
-
-          // El total de BD siempre incluye tickets (T*) que nunca bajarán.
-          // El initialCount representa cuántos documentos VÁLIDOS (no-T) enviamos.
-          // Consideramos completo cuando el total bajó al menos initialCount docs respecto al inicio.
-          // O cuando el total de pendientes enviables (aprox: currentTotal - ticketsBase) llega a 0.
-          // Simplificación: si currentTotal <= (totalOriginalConTickets - initialCount), terminamos.
-          const savedOriginalTotal = Number(localStorage.getItem(`bulk_original_total_${tipo}`) || '0');
-          const pendingEnviables = Math.max(0, currentTotal - (savedOriginalTotal - initialCount));
-          console.log(`[Bulk Send Polling] Enviables pendientes estimados: ${pendingEnviables} de ${initialCount}`);
-
-          setPendingCount(pendingEnviables);
-          localStorage.setItem(`bulk_pending_count_${tipo}`, String(pendingEnviables));
-
-          if (pendingEnviables <= 0) {
-            setIsProcessing(false);
-            setInitialCount(0);
-            setPendingCount(0);
-            localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
-            localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
-            localStorage.setItem(`bulk_pending_count_${tipo}`, '0');
-            message.success('Proceso de envío masivo completado');
-          }
-        }
-      } catch (err) {
-        console.error('[Bulk Send Polling] Error al verificar progreso:', err);
-      }
-    }, 5000);
-
-    return () => {
-      console.log(`[Bulk Send Polling] Deteniendo polling para ${tipo}`);
-      clearInterval(interval);
-    };
-  }, [isProcessing, tipo, refetchVentas, refetchGuias, refetchRetenciones, bulkFechaInicio, bulkFechaFin, bulkSerie, initialCount, message]);
-
   const getPendingDocs = useCallback(() => {
     if (tipo === 'ventas') return ventas?.data?.items || [];
     if (tipo === 'guias') return guias?.data?.items || [];
@@ -186,6 +140,49 @@ const DocumentConfigPanel = ({
     if (tipo === 'retenciones') return retenciones?.data?.total || 0;
     return 0;
   }, [tipo, ventas, guias, retenciones]);
+
+  // Polling para refrescar la tabla/consulta principal periódicamente mientras se procesa
+  useEffect(() => {
+    if (!isProcessing) return;
+
+    console.log(`[Bulk Send Polling] Iniciando polling para ${tipo}`);
+
+    const interval = setInterval(() => {
+      if (tipo === 'ventas') refetchVentas();
+      else if (tipo === 'guias') refetchGuias();
+      else refetchRetenciones();
+    }, 5000);
+
+    return () => {
+      console.log(`[Bulk Send Polling] Deteniendo polling para ${tipo}`);
+      clearInterval(interval);
+    };
+  }, [isProcessing, tipo, refetchVentas, refetchGuias, refetchRetenciones]);
+
+  // Actualizar pendingCount en base al total de la consulta principal
+  useEffect(() => {
+    if (!isProcessing) return;
+
+    const savedOriginalTotal = Number(localStorage.getItem(`bulk_original_total_${tipo}`) || '0');
+    
+    // pendingEnviables = total - (totalOriginalConTickets - initialCount)
+    const pendingEnviables = Math.max(0, total - (savedOriginalTotal - initialCount));
+    
+    console.log(`[Bulk Progress Polling] Total actual pendiente en DB: ${total}. Original: ${savedOriginalTotal}. Restantes a enviar: ${pendingEnviables}`);
+
+    setPendingCount(pendingEnviables);
+    localStorage.setItem(`bulk_pending_count_${tipo}`, String(pendingEnviables));
+
+    if (pendingEnviables <= 0 && initialCount > 0) {
+      setIsProcessing(false);
+      setInitialCount(0);
+      setPendingCount(0);
+      localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
+      localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
+      localStorage.setItem(`bulk_pending_count_${tipo}`, '0');
+      message.success('Proceso de envío masivo completado');
+    }
+  }, [total, isProcessing, initialCount, tipo, message]);
 
   // Timeout de seguridad de 10 minutos para liberar la interfaz
   useEffect(() => {
@@ -203,16 +200,6 @@ const DocumentConfigPanel = ({
 
     return () => clearTimeout(timeout);
   }, [isProcessing, tipo, message]);
-
-  const handleCancelBulkSend = () => {
-    setIsProcessing(false);
-    setPendingCount(0);
-    setInitialCount(0);
-    localStorage.setItem(`bulk_is_processing_${tipo}`, 'false');
-    localStorage.setItem(`bulk_pending_count_${tipo}`, '0');
-    localStorage.setItem(`bulk_initial_count_${tipo}`, '0');
-    message.info('Seguimiento de envío masivo detenido. Los documentos se seguirán procesando en segundo plano en el servidor.');
-  };
 
   const filteredDocs = useMemo(() => {
     const docs = getPendingDocs();
@@ -264,10 +251,7 @@ const DocumentConfigPanel = ({
           return;
         }
 
-        // Guardar filtros activos para que el polling use los mismos criterios
-        setBulkFechaInicio(fi);
-        setBulkFechaFin(ff);
-        setBulkSerie(sr);
+        
         
         // Guardar total original (incluyendo tickets) para calcular correctamente el progreso
         const totalOriginalConTickets = total;
@@ -385,20 +369,7 @@ const DocumentConfigPanel = ({
                 showIcon
                 icon={<Spin size="small" />}
                 title="Envío en proceso"
-                description={
-                  <Space orientation="vertical" style={{ width: '100%' }}>
-                    <div>
-                      {`Enviando documentos a NubeFact. Quedan ${pendingCount} de ${initialCount} por enviar.`}
-                    </div>
-                    <Button
-                      danger
-                      size="small"
-                      onClick={handleCancelBulkSend}
-                    >
-                      Detener Envío Masivo
-                    </Button>
-                  </Space>
-                }
+                description={`Enviando documentos a NubeFact. Quedan ${pendingCount} de ${initialCount} por enviar.`}
                 style={{ marginBottom: 16 }}
               />
             )}
@@ -421,7 +392,7 @@ const DocumentConfigPanel = ({
                               placeholder="Desde"
                               style={{ width: '100%' }}
                               value={startDate}
-                              onChange={(val) => setStartDate(val)}
+                              onChange={handleStartDateChange}
                             />
                           </Col>
                           <Col span={12}>
@@ -430,7 +401,7 @@ const DocumentConfigPanel = ({
                               placeholder="Hasta"
                               style={{ width: '100%' }}
                               value={endDate}
-                              onChange={(val) => setEndDate(val)}
+                              onChange={handleEndDateChange}
                             />
                           </Col>
                         </Row>
@@ -442,7 +413,7 @@ const DocumentConfigPanel = ({
                         <Input
                           placeholder="Ej: F001, B037"
                           value={serie}
-                          onChange={(e) => setSerie(e.target.value.toUpperCase().trim())}
+                          onChange={(e) => handleSerieChange(e.target.value.toUpperCase().trim())}
                           allowClear
                         />
                       </div>
