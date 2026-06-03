@@ -206,11 +206,10 @@ const DocumentConfigPanel = ({
     return docs.filter((d: any) => {
       // Ignorar documentos que necesitan aprobación (no deben enviarse masivamente)
       if (d.necesita_aprobacion) return false;
-      // Para ventas: no mostrar tickets (IDs/series que empiezan con T)
+      // Para ventas: no mostrar tickets (series que empiezan con T)
       if (tipo === 'ventas') {
-        const id = d.Document || '';
         const serie = d.DocumentSerie || '';
-        if (String(id).toUpperCase().startsWith('T') || String(serie).toUpperCase().startsWith('T')) return false;
+        if (String(serie).toUpperCase().startsWith('T')) return false;
       }
       return true;
     });
