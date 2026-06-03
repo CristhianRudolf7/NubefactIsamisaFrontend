@@ -58,12 +58,12 @@ export default function VentasDetail() {
   };
 
   const handleDownloadXml = () => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const baseUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000/api`;
     window.open(`${baseUrl}/ventas/${id}/xml`, '_blank');
   };
 
   const handleDownloadCdr = () => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const baseUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000/api`;
     window.open(`${baseUrl}/ventas/${id}/cdr`, '_blank');
   };
 

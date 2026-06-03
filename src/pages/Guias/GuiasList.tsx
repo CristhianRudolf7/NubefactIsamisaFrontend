@@ -132,12 +132,12 @@ export default function GuiasList() {
   };
 
   const handleDownloadXml = (record: Record<string, unknown>) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const baseUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000/api`;
     window.open(`${baseUrl}/guias/${record.Transaction}/xml`, '_blank');
   };
 
   const handleDownloadCdr = (record: Record<string, unknown>) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+    const baseUrl = import.meta.env.VITE_API_URL || `http://${window.location.hostname}:8000/api`;
     window.open(`${baseUrl}/guias/${record.Transaction}/cdr`, '_blank');
   };
 
