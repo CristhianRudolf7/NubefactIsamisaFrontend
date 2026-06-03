@@ -1,7 +1,7 @@
 import { Form, Input, Select, DatePicker, Button, Space, Row, Col, Collapse, Tooltip } from 'antd';
 import type { Dayjs } from 'dayjs';
 import { SearchOutlined, ClearOutlined, FilterOutlined, ReloadOutlined } from '@ant-design/icons';
-import { useState, ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { FilterParams } from '../../types';
 import { ESTADOS_DOCUMENTO, TIPOS_DOCUMENTO_VENTA } from '../../utils/constants';
 
@@ -15,6 +15,7 @@ interface FilterPanelProps {
   showTipoDocumento?: boolean;
   estados?: { value: string; label: string }[];
   columnSelector?: ReactNode;
+  initialValues?: Record<string, unknown>;
 }
 
 export default function FilterPanel({
@@ -25,6 +26,7 @@ export default function FilterPanel({
   showTipoDocumento = true,
   estados = ESTADOS_DOCUMENTO,
   columnSelector,
+  initialValues,
 }: FilterPanelProps) {
   const [form] = Form.useForm();
   const [expanded, setExpanded] = useState(true); // Abierto por defecto
@@ -57,7 +59,7 @@ export default function FilterPanel({
         </Space>
       ),
       children: (
-        <Form form={form} layout="vertical" onFinish={handleFinish}>
+        <Form form={form} layout="vertical" onFinish={handleFinish} initialValues={initialValues}>
           <Row gutter={[16, 8]}>
             <Col xs={24} sm={12} md={8} lg={6} xl={4}>
               <Item label="Fecha Inicio" name="fecha_inicio">

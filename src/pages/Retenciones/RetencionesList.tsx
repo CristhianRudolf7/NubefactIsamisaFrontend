@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Typography, Card, App, Space, Tag } from 'antd';
+import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '../../components/common/DataTable';
 import FilterPanel from '../../components/common/FilterPanel';
@@ -20,7 +21,10 @@ export default function RetencionesList() {
   const navigate = useNavigate();
   const { usuario } = useAppContext();
   const { message } = App.useApp();
-  const [filters, setFilters] = useState<FilterParams>({});
+  const [filters, setFilters] = useState<FilterParams>({
+    fecha_inicio: dayjs().subtract(3, 'day').format('DD-MM-YYYY'),
+    fecha_fin: dayjs().format('DD-MM-YYYY'),
+  });
   const [pagination, setPagination] = useState<PaginationParams>({ page: 1, page_size: 20 });
   const [historyModal, setHistoryModal] = useState<{ open: boolean; record: Retencion | null }>({
     open: false,
@@ -49,7 +53,10 @@ export default function RetencionesList() {
   };
 
   const handleResetFilters = () => {
-    setFilters({});
+    setFilters({
+      fecha_inicio: dayjs().subtract(3, 'day').format('DD-MM-YYYY'),
+      fecha_fin: dayjs().format('DD-MM-YYYY'),
+    });
     setPagination((p) => ({ ...p, page: 1 }));
   };
 
@@ -183,6 +190,10 @@ export default function RetencionesList() {
         isLoading={isLoading}
         showTipoDocumento={false}
         estados={ESTADOS_DOCUMENTO}
+        initialValues={{
+          fecha_inicio: filters.fecha_inicio ? dayjs(filters.fecha_inicio, 'DD-MM-YYYY') : undefined,
+          fecha_fin: filters.fecha_fin ? dayjs(filters.fecha_fin, 'DD-MM-YYYY') : undefined,
+        }}
         columnSelector={
           <ColumnSelector
             columns={columns}
